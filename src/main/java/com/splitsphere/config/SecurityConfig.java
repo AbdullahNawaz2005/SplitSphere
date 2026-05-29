@@ -27,6 +27,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -60,6 +62,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/google").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
@@ -88,14 +91,44 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder(12);
     }
 
+    /**
+     * Builds the merged list of allowed origins from:
+     * <ol>
+     *   <li>{@code app.cors.allowed-origins} (env: CORS_ALLOWED_ORIGINS)</li>
+     *   <li>{@code app.cors.frontend-url} (env: FRONTEND_URL) — may be a single
+     *       URL or multiple comma-separated URLs</li>
+     * </ol>
+     * Duplicates are removed.  An empty list results in no CORS access.
+     */
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
+        List<String> origins = new ArrayList<>();
+
+        // 1. Origins from app.cors.allowed-origins (CORS_ALLOWED_ORIGINS)
+        if (corsProperties.allowedOrigins() != null) {
+            origins.addAll(corsProperties.allowedOrigins());
+        }
+
+        // 2. Origins from app.cors.frontend-url (FRONTEND_URL)
+        //    Supports comma-separated values, e.g.
+        //    FRONTEND_URL=https://split-sphere.vercel.app,http://localhost:5173
+        if (corsProperties.frontendUrl() != null && !corsProperties.frontendUrl().isBlank()) {
+            Arrays.stream(corsProperties.frontendUrl().split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .forEach(origins::add);
+        }
+
+        // Deduplicate while preserving order
+        List<String> deduplicated = origins.stream().distinct().toList();
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(corsProperties.allowedOrigins() == null ? List.of() : corsProperties.allowedOrigins());
+        configuration.setAllowedOrigins(deduplicated);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
