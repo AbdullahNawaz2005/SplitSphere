@@ -1,6 +1,7 @@
 package com.splitsphere.controller;
 
 import com.splitsphere.dto.auth.AuthResponse;
+import com.splitsphere.dto.auth.GoogleLoginRequest;
 import com.splitsphere.dto.auth.LoginRequest;
 import com.splitsphere.dto.auth.RegisterRequest;
 import com.splitsphere.dto.auth.UserResponse;
@@ -32,6 +33,11 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/google")
+    public AuthResponse googleLogin(@Valid @RequestBody GoogleLoginRequest request) {
+        return authService.googleLogin(request);
     }
 
     @GetMapping("/me")

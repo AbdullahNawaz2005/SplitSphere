@@ -570,3 +570,75 @@ Runtime/API verification:
 Current blocker:
 
 - The correct Neon `DB_PASSWORD` is not available in this shell. Set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and `JWT_SECRET`, restart the backend, then rerun `tools/run-api-test.ps1`.
+
+## 14. Google Login Implementation - 2026-05-30
+
+Implemented secure Google login without changing normal email/password auth.
+
+Backend changes:
+
+- Added required environment variable:
+  - `GOOGLE_CLIENT_ID`
+- Added endpoint:
+  - `POST /api/auth/google`
+- Added request DTO:
+
+```json
+{
+  "idToken": "google-id-token"
+}
+```
+
+Security behavior:
+
+- Google ID tokens are verified server-side using Google's Java `GoogleIdTokenVerifier`.
+- Verifier audience is configured from `GOOGLE_CLIENT_ID`.
+- Backend rejects invalid tokens with `401`.
+- Backend rejects `email_verified=false` with `401`.
+- Backend rejects missing/blank `idToken` with validation `400`.
+- Backend extracts `name`, `email`, and `picture` only from verified Google token payload claims.
+- Backend never trusts frontend-provided Google profile fields.
+- Existing users are reused by email.
+- New Google users are created with:
+  - verified Google email
+  - sanitized Google display name, falling back to email when absent
+  - Google picture URL in `avatar_url`
+  - generated BCrypt password placeholder because `users.password_hash` is required by the current schema
+- Auth response shape is unchanged and returns the normal SplitSphere JWT.
+
+Frontend changes:
+
+- Added Google Identity Services button component.
+- Frontend reads:
+  - `VITE_GOOGLE_CLIENT_ID`
+- Frontend exchanges the Google `credential` ID token with:
+  - `POST /api/auth/google`
+- On success, the existing auth context stores the normal SplitSphere JWT exactly like email/password login.
+
+Configuration:
+
+Backend:
+
+```powershell
+$env:GOOGLE_CLIENT_ID = "<Google OAuth web client ID>"
+```
+
+Frontend:
+
+```powershell
+$env:VITE_GOOGLE_CLIENT_ID = "<Google OAuth web client ID>"
+```
+
+Docker Compose now requires `GOOGLE_CLIENT_ID` for the API container.
+
+Verification:
+
+- `& 'C:\Program Files\Apache\Maven\bin\mvn.cmd' clean test`
+- Result: PASS, 2 tests run, 0 failures, 0 errors.
+- `npm run build` in `FrontEnd`
+- Result: PASS.
+
+Runtime verification note:
+
+- Live Google login requires a real Google OAuth web client ID configured in both backend and frontend and a browser sign-in to produce a Google ID token.
+- Full backend API runtime verification remains blocked in this shell by the missing correct Neon `DB_PASSWORD` noted in section 13.

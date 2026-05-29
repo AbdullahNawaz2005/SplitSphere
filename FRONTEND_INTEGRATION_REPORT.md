@@ -14,7 +14,11 @@ Use `localhost:5173` for browser testing. Backend CORS allows `http://localhost:
 
 ## Files Changed
 
+- `.gitignore`
 - `FrontEnd/.env`
+- `FrontEnd/.env.example`
+- `FrontEnd/package.json`
+- `FrontEnd/package-lock.json`
 - `FrontEnd/src/main.tsx`
 - `FrontEnd/src/App.tsx`
 - `FrontEnd/src/services/api.ts`
@@ -25,6 +29,7 @@ Use `localhost:5173` for browser testing. Backend CORS allows `http://localhost:
 - `FrontEnd/src/contexts/AuthContext.tsx`
 - `FrontEnd/src/contexts/ToastContext.tsx`
 - `FrontEnd/src/utils/display.ts`
+- `FrontEnd/src/components/GoogleAuthButton.tsx`
 - `FrontEnd/src/components/AddExpenseModal.tsx`
 - `FrontEnd/src/components/Navigation.tsx`
 - `FrontEnd/src/pages/LoginPage.tsx`
@@ -45,6 +50,7 @@ No backend code was changed for this integration pass.
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 ```
 
 JWTs are stored in `localStorage` under frontend-only keys. No secrets or credentials are hardcoded.
@@ -53,6 +59,7 @@ JWTs are stored in `localStorage` under frontend-only keys. No secrets or creden
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `POST /api/auth/google`
 - `GET /api/auth/me`
 - `GET /api/groups`
 - `POST /api/groups`
@@ -88,7 +95,14 @@ JWTs are stored in `localStorage` under frontend-only keys. No secrets or creden
 - Insights load group analytics where available.
 - Toast notifications and loading/empty states are implemented without redesigning the Stitch UI.
 
-Google sign-in/sign-up remains frontend-only and shows an informational toast because no verified Google OAuth backend endpoint exists.
+Google sign-in/sign-up uses Google Identity via `@react-oauth/google`, sends the Google ID token to `POST /api/auth/google`, stores the returned JWT the same way as email/password login, and redirects to the dashboard.
+
+## Google Login Flow
+
+1. User clicks the existing Google button on login/signup.
+2. Google returns `credentialResponse.credential` (ID token).
+3. Frontend sends `{ "idToken": "<credential>" }` to `POST /api/auth/google`.
+4. Backend returns the standard auth response; frontend stores the JWT and updates auth context before redirecting to `/dashboard`.
 
 ## Still Mocked Or Partial
 
@@ -98,6 +112,12 @@ Google sign-in/sign-up remains frontend-only and shows an informational toast be
 - Profile settings, payment methods, dark mode, theme, and notification controls remain presentation-only because no verified backend endpoints exist for them.
 
 ## Commands Run
+
+```powershell
+npm install @react-oauth/google
+```
+
+Result: PASS
 
 ```powershell
 npm run build
@@ -157,3 +177,9 @@ http://localhost:5173
 - Use `http://localhost:5173` instead of `http://127.0.0.1:5173` unless backend CORS is expanded.
 - Production bundle builds successfully but Vite reports a large chunk warning. This is not a functional blocker.
 - In-app browser automation was not available in this environment, so verification used TypeScript build, Vite HTTP check, CORS preflight, and backend API smoke calls.
+
+## Testing Steps
+
+1. Configure `.env` with `VITE_API_BASE_URL` and `VITE_GOOGLE_CLIENT_ID`.
+2. Run `npm run build` in `FrontEnd`.
+3. Run `npm run dev` and test Google sign-in plus email/password login.

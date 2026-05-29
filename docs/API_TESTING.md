@@ -14,6 +14,7 @@ Secrets are redacted. JWT values are shown as `<JWT>` and passwords as `<passwor
 | --- | --- | --- | --- |
 | `/api/auth/register` | `POST` | No | PASS |
 | `/api/auth/login` | `POST` | No | PASS |
+| `/api/auth/google` | `POST` | No | BUILD VERIFIED, live Google token not available in local API script |
 | `/api/groups` | `GET` | Yes | PASS |
 | `/api/groups` | `POST` | Yes | PASS |
 | `/api/groups/join` | `POST` | Yes | PASS |
@@ -96,6 +97,61 @@ Response:
 ```
 
 Result: PASS. The access token was captured automatically and used as `Authorization: Bearer <JWT>`.
+
+## Google Login
+
+Endpoint: `POST /api/auth/google`
+
+JWT required: No
+
+Environment required:
+
+```text
+GOOGLE_CLIENT_ID=<Google OAuth web client ID>
+```
+
+Request:
+
+```json
+{
+  "idToken": "<google-id-token>"
+}
+```
+
+Response shape matches normal email/password login:
+
+```json
+{
+  "accessToken": "<JWT>",
+  "tokenType": "Bearer",
+  "expiresInSeconds": 3600,
+  "user": {
+    "id": "<uuid>",
+    "name": "Google User",
+    "email": "user@example.com",
+    "role": "USER",
+    "createdAt": "2026-05-30T00:00:00Z"
+  }
+}
+```
+
+Validation/error behavior:
+
+- Missing or blank `idToken`: `400 Validation failed`.
+- Invalid Google token: `401 Invalid Google token`.
+- Google token without email: `401 Google token does not include an email address`.
+- `email_verified=false`: `401 Google email is not verified`.
+
+Implementation notes:
+
+- Backend verifies the ID token with Google's Java `GoogleIdTokenVerifier`.
+- The verifier is configured with `GOOGLE_CLIENT_ID` as the allowed audience.
+- Backend extracts Google-provided `name`, `email`, and `picture`; it does not trust frontend-provided profile fields.
+- Existing users are matched by email.
+- New Google users get a generated non-usable BCrypt password placeholder because the current `users.password_hash` column is required.
+- The frontend Google button uses Google Identity Services to obtain the ID token, then exchanges it for the normal SplitSphere JWT.
+
+Result: Build verified with `mvn clean test`. The local API script does not generate a real Google ID token, so live endpoint verification requires a browser sign-in with matching frontend/backend Google client IDs.
 
 ## Create Group
 
