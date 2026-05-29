@@ -1,0 +1,335 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── SplitSphere Luminous Ledger Design System ── */
+  
+  /* Primary Palette - Emerald */
+  --color-primary: #006c49;
+  --color-primary-container: #10b981;
+  --color-primary-fixed: #6ffbbe;
+  --color-primary-fixed-dim: #4edea3;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #00422b;
+  --color-inverse-primary: #4edea3;
+  
+  /* Secondary Palette - Cyan */
+  --color-secondary: #00687a;
+  --color-secondary-container: #57dffe;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #006172;
+  
+  /* Tertiary Palette - Purple */
+  --color-tertiary: #842bd2;
+  --color-tertiary-container: #c487ff;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #550093;
+  
+  /* Surface / Background */
+  --color-surface: #f8fafc;
+  --color-surface-dim: #cfdaf2;
+  --color-surface-bright: #f9f9ff;
+  --color-surface-container: #e7eeff;
+  --color-surface-container-low: #f0f3ff;
+  --color-surface-container-high: #dee8ff;
+  --color-surface-container-highest: #d8e3fb;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #111c2d;
+  --color-on-surface-variant: #3c4a42;
+  --color-inverse-surface: #263143;
+  --color-inverse-on-surface: #ecf1ff;
+  
+  /* Outline */
+  --color-outline: #6c7a71;
+  --color-outline-variant: #bbcabf;
+  
+  /* Error */
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  
+  /* Semantic */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-info: #06b6d4;
+  
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  /* Border radius */
+  --radius-sm: 0.25rem;
+  --radius-DEFAULT: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-full: 9999px;
+}
+
+/* ── Base Styles ── */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-on-surface);
+  background: var(--color-surface);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Glassmorphism Utilities ── */
+.glass {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0px 10px 30px rgba(30, 41, 59, 0.05);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0px 10px 30px rgba(30, 41, 59, 0.08);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  border-color: var(--color-primary-container);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Gradient Backgrounds ── */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, var(--color-primary-container), var(--color-secondary-container));
+}
+
+.bg-gradient-hero {
+  background: 
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(16, 185, 129, 0.15) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 20%, rgba(87, 223, 254, 0.12) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 50% 80%, rgba(196, 135, 255, 0.08) 0%, transparent 70%),
+    var(--color-surface);
+}
+
+.bg-gradient-mesh {
+  background: 
+    radial-gradient(circle at 25% 25%, rgba(16, 185, 129, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(87, 223, 254, 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(196, 135, 255, 0.06) 0%, transparent 50%),
+    var(--color-surface);
+}
+
+/* ── Animated Background Blobs ── */
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blob-emerald {
+  background: var(--color-primary-container);
+  width: 400px;
+  height: 400px;
+  animation: float-blob 20s ease-in-out infinite;
+}
+
+.blob-cyan {
+  background: var(--color-secondary-container);
+  width: 350px;
+  height: 350px;
+  animation: float-blob 25s ease-in-out infinite reverse;
+}
+
+.blob-purple {
+  background: var(--color-tertiary-container);
+  width: 300px;
+  height: 300px;
+  animation: float-blob 22s ease-in-out infinite;
+  animation-delay: -5s;
+}
+
+@keyframes float-blob {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(50px, -30px) scale(1.05); }
+  50% { transform: translate(-20px, 40px) scale(0.95); }
+  75% { transform: translate(30px, 20px) scale(1.02); }
+}
+
+/* ── Card hover effects ── */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 16px 40px rgba(30, 41, 59, 0.1);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Gradient text ── */
+.text-gradient {
+  background: linear-gradient(135deg, var(--color-primary-container), var(--color-secondary-container));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Noise texture overlay ── */
+.noise-overlay::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline);
+}
+
+/* ── Mobile bottom nav safe area ── */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ── Avatar gradient rings ── */
+.avatar-ring {
+  background: linear-gradient(135deg, var(--color-primary-container), var(--color-secondary-container));
+  padding: 2px;
+  border-radius: 50%;
+}
+
+/* ── Button styles ── */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary-container), #06b6d4);
+  color: white;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  color: var(--color-primary);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1.5rem;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  cursor: pointer;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+.btn-ghost {
+  background: none;
+  color: var(--color-on-surface-variant);
+  font-weight: 500;
+  border: none;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-on-surface);
+}
+
+/* ── Chip/Tag styles ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.chip-emerald {
+  background: rgba(16, 185, 129, 0.1);
+  color: #006c49;
+}
+
+.chip-cyan {
+  background: rgba(6, 182, 212, 0.1);
+  color: #006172;
+}
+
+.chip-purple {
+  background: rgba(132, 43, 210, 0.1);
+  color: #550093;
+}
+
+.chip-red {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ba1a1a;
+}
+
+.chip-orange {
+  background: rgba(245, 158, 11, 0.1);
+  color: #92400e;
+}
