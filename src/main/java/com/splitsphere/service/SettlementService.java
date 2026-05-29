@@ -1,0 +1,94 @@
+package com.splitsphere.service;
+
+import com.splitsphere.dto.common.PageResponse;
+import com.splitsphere.dto.settlement.CreateSettlementRequest;
+import com.splitsphere.dto.settlement.SettlementResponse;
+import com.splitsphere.entity.ExpenseGroup;
+import com.splitsphere.entity.Settlement;
+import com.splitsphere.entity.User;
+import com.splitsphere.entity.enums.SettlementStatus;
+import com.splitsphere.exception.BadRequestException;
+import com.splitsphere.exception.ForbiddenException;
+import com.splitsphere.exception.ResourceNotFoundException;
+import com.splitsphere.repository.SettlementRepository;
+import com.splitsphere.repository.UserRepository;
+import com.splitsphere.util.MoneyUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class SettlementService {
+
+    private final SettlementRepository settlementRepository;
+    private final UserRepository userRepository;
+    private final GroupService groupService;
+    private final CurrentUserService currentUserService;
+    private final ActivityLogService activityLogService;
+
+    @Transactional
+    public SettlementResponse recordSettlement(CreateSettlementRequest request) {
+        if (request.groupId() == null) {
+            throw new BadRequestException("Group id is required");
+        }
+        User actor = currentUserService.getCurrentUser();
+        ExpenseGroup group = groupService.getGroup(request.groupId());
+        groupService.requireActiveMember(group, actor);
+
+        if (request.payerId().equals(request.receiverId())) {
+            throw new BadRequestException("Payer and receiver must be different users");
+        }
+
+        User payer = loadUser(request.payerId());
+        User receiver = loadUser(request.receiverId());
+        groupService.requireActiveMember(group, payer);
+        groupService.requireActiveMember(group, receiver);
+        MoneyUtils.requirePositive(request.amount(), "Settlement amount");
+
+        Settlement settlement = new Settlement();
+        settlement.setGroup(group);
+        settlement.setPayer(payer);
+        settlement.setReceiver(receiver);
+        settlement.setAmount(MoneyUtils.normalize(request.amount()));
+        settlement.setStatus(SettlementStatus.PENDING);
+        Settlement saved = settlementRepository.save(settlement);
+        activityLogService.record(group, actor, "SETTLEMENT_CREATED", actor.getName() + " created a settlement route");
+        return SettlementResponse.from(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<SettlementResponse> listSettlements(UUID groupId, int page, int size) {
+        groupService.requireActiveMember(groupId);
+        var pageable = PageRequest.of(page, Math.min(size, 100), Sort.by(Sort.Direction.DESC, "createdAt"));
+        return PageResponse.from(settlementRepository.findByGroupId(groupId, pageable).map(SettlementResponse::from));
+    }
+
+    @Transactional
+    public SettlementResponse completeSettlement(UUID settlementId) {
+        User actor = currentUserService.getCurrentUser();
+        Settlement settlement = settlementRepository.findById(settlementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement not found"));
+        groupService.requireActiveMember(settlement.getGroup(), actor);
+        if (!settlement.getPayer().getId().equals(actor.getId()) && !settlement.getGroup().getOwner().getId().equals(actor.getId())) {
+            throw new ForbiddenException("Only the payer or group owner can complete this settlement");
+        }
+        if (settlement.getStatus() == SettlementStatus.CANCELLED) {
+            throw new BadRequestException("Cancelled settlements cannot be completed");
+        }
+        settlement.setStatus(SettlementStatus.COMPLETED);
+        settlement.setSettledAt(Instant.now());
+        activityLogService.record(settlement.getGroup(), actor, "SETTLEMENT_COMPLETED", actor.getName() + " completed a settlement");
+        return SettlementResponse.from(settlementRepository.save(settlement));
+    }
+
+    private User loadUser(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+    }
+}
