@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public record CreateSettlementRequest(
         UUID groupId,
-        @NotNull UUID payerId,
+        UUID payerId,
         @JsonAlias("payeeId") @NotNull UUID receiverId,
         @NotNull @DecimalMin(value = "0.01") BigDecimal amount,
         @Size(max = 255) @Pattern(regexp = "^[^<>]*$", message = "must not contain HTML markup") String note

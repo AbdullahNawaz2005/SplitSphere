@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, ChevronRight, Search, X } from 'lucide-react'
 import { AvatarStack } from '../components/Avatar'
+import { useAppearance } from '../contexts/AppearanceContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { GroupMemberResponse, GroupResponse } from '../services/api'
@@ -39,6 +40,7 @@ const GroupsPage: React.FC = () => {
   const [saving, setSaving] = useState(false)
   const { user } = useAuth()
   const { showToast } = useToast()
+  useAppearance()
 
   const loadGroups = async () => {
     setLoading(true)

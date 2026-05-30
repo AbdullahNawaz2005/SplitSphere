@@ -2,17 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Plus, TrendingUp, ChevronRight } from 'lucide-react'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import GlassCard from '../components/GlassCard'
 import { AvatarStack } from '../components/Avatar'
 import AddExpenseModal, { AddExpensePayload, ModalUser } from '../components/AddExpenseModal'
+import { useAppearance } from '../contexts/AppearanceContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { CategoryResponse, ExpenseResponse, GroupResponse } from '../services/api'
 import { expenseService } from '../services/expenseService'
 import { groupService } from '../services/groupService'
 import { colorFor, iconFor, initialsFor, money, shortDate } from '../utils/display'
-import { spendingTrends } from '../data/mockData'
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -22,18 +21,6 @@ const stagger = {
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeInOut' as const } },
-}
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="glass-strong rounded-xl px-3 py-2 text-xs">
-        <p className="font-semibold">{label}</p>
-        <p className="text-primary-container font-bold">${payload[0].value}</p>
-      </div>
-    )
-  }
-  return null
 }
 
 const toModalUsers = (members: ModalUser[], userId?: string, userName?: string): ModalUser[] => {
@@ -53,6 +40,7 @@ const DashboardPage: React.FC = () => {
   const [submittingExpense, setSubmittingExpense] = useState(false)
   const { user } = useAuth()
   const { showToast } = useToast()
+  useAppearance()
 
   const loadDashboard = async () => {
     setLoading(true)
@@ -168,28 +156,20 @@ const DashboardPage: React.FC = () => {
           <GlassCard className="md:col-span-3" hover={false} delay={0.2}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-lg font-bold tracking-tight">Spending Trends</h3>
-                <p className="text-xs text-on-surface-variant">Weekly trend placeholder until a time-series endpoint exists</p>
+                <h3 className="text-lg font-bold tracking-tight">Insights</h3>
+                <p className="text-xs text-on-surface-variant">Live backend data only</p>
               </div>
               <Link to="/insights" className="chip chip-cyan cursor-pointer hover:bg-cyan-100/20 transition-colors">
                 View All <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={spendingTrends}>
-                  <defs>
-                    <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6c7a71' }} />
-                  <YAxis hide />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="amount" stroke="#10b981" strokeWidth={2.5} fill="url(#colorSpend)" />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="h-48 glass-subtle rounded-2xl flex items-center justify-center px-6 text-center">
+              <div>
+                <p className="text-sm font-semibold">
+                  {expenses.length === 0 ? 'No expenses yet. Add your first expense to see insights.' : 'Open Insights to review live category totals from your groups.'}
+                </p>
+                <p className="text-xs text-on-surface-variant mt-2">Fake weekly charts have been removed.</p>
+              </div>
             </div>
           </GlassCard>
         </div>
@@ -256,7 +236,7 @@ const DashboardPage: React.FC = () => {
                   </motion.div>
                 )
               }) : (
-                <div className="glass rounded-2xl p-6 text-center text-sm text-on-surface-variant">No expenses yet.</div>
+                <div className="glass rounded-2xl p-6 text-center text-sm text-on-surface-variant">No expenses yet. Add your first expense to see insights.</div>
               )}
             </motion.div>
           </div>

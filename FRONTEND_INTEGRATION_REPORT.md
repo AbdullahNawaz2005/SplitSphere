@@ -21,6 +21,7 @@ Use `localhost:5173` for browser testing. Backend CORS allows `http://localhost:
 - `FrontEnd/package-lock.json`
 - `FrontEnd/src/main.tsx`
 - `FrontEnd/src/App.tsx`
+- `FrontEnd/src/contexts/AppearanceContext.tsx`
 - `FrontEnd/src/services/api.ts`
 - `FrontEnd/src/services/authService.ts`
 - `FrontEnd/src/services/groupService.ts`
@@ -29,6 +30,7 @@ Use `localhost:5173` for browser testing. Backend CORS allows `http://localhost:
 - `FrontEnd/src/contexts/AuthContext.tsx`
 - `FrontEnd/src/contexts/ToastContext.tsx`
 - `FrontEnd/src/utils/display.ts`
+- `FrontEnd/src/utils/preferences.ts`
 - `FrontEnd/src/components/GoogleAuthButton.tsx`
 - `FrontEnd/src/components/AddExpenseModal.tsx`
 - `FrontEnd/src/components/Navigation.tsx`
@@ -41,6 +43,7 @@ Use `localhost:5173` for browser testing. Backend CORS allows `http://localhost:
 - `FrontEnd/src/pages/InsightsPage.tsx`
 - `FrontEnd/src/pages/ActivityPage.tsx`
 - `FrontEnd/src/pages/ProfilePage.tsx`
+- `FrontEnd/src/data/mockData.ts` deleted
 
 No backend code was changed for this integration pass.
 
@@ -94,6 +97,12 @@ JWTs are stored in `localStorage` under frontend-only keys. No secrets or creden
 - Activity is loaded from group activity endpoints.
 - Insights load group analytics where available.
 - Toast notifications and loading/empty states are implemented without redesigning the Stitch UI.
+- Demo financial data has been removed from dashboard, insights, profile, add-expense summary fallbacks, and the landing preview.
+- Empty analytics states now show: "No expenses yet. Add your first expense to see insights."
+- Profile settings were reduced to real account information, global dark mode, currency selection, and sign out.
+- Dark mode is applied globally with the existing glassmorphism style and persists in `localStorage`.
+- Currency selection supports `PKR Rs.` and `USD $`, persists in `localStorage`, and uses a frontend-only display conversion of `1 USD = 280 PKR` while backend amounts remain unchanged.
+- Payment methods, notifications, theme, help/support, privacy/security, fake profile stats, reminder delivery, and other dead settings were removed from visible UI.
 
 Google sign-in/sign-up uses Google Identity via `@react-oauth/google`, sends the Google ID token to `POST /api/auth/google`, stores the returned JWT the same way as email/password login, and redirects to the dashboard.
 
@@ -106,10 +115,11 @@ Google sign-in/sign-up uses Google Identity via `@react-oauth/google`, sends the
 
 ## Still Mocked Or Partial
 
-- Dashboard weekly spending trend remains mock data because the backend has no verified time-series trend endpoint.
-- Insights monthly stacked chart remains mock data because the backend exposes group totals/category spending, not month-by-month history.
-- Reminder delivery in settlements is frontend-only because no verified reminder endpoint exists.
-- Profile settings, payment methods, dark mode, theme, and notification controls remain presentation-only because no verified backend endpoints exist for them.
+- Dashboard weekly spending trend and Insights monthly/weekly charts were removed because there is no verified time-series endpoint.
+- Insights category split is shown only when the backend analytics endpoint returns real category totals.
+- Profile editing is read-only because no verified update-profile endpoint exists.
+- Login provider details are not exposed by the backend, so Profile states that the login method is not exposed instead of guessing.
+- Password change, notification preferences, theme switching, payment methods, support links, and reminder delivery are not shown because no verified backend behavior exists for them.
 
 ## Commands Run
 
@@ -123,13 +133,33 @@ Result: PASS
 npm run build
 ```
 
-Result: PASS
+Result: PASS. Re-run after production cleanup.
 
 ```powershell
 npm run dev -- --host 127.0.0.1
 ```
 
 Result: PASS. Vite served the app and `http://localhost:5173` returned HTTP 200.
+
+Additional production cleanup verification:
+
+```powershell
+npm run build
+```
+
+Result: PASS. Vite bundle completed with the existing large chunk warning only.
+
+```powershell
+Invoke-WebRequest http://127.0.0.1:5173
+```
+
+Result: PASS. Local Vite server returned HTTP 200.
+
+```powershell
+curl.exe -s -o NUL -w "%{http_code}" http://localhost:8080/api/auth/me
+```
+
+Result: Backend unavailable in this verification session (`000`), so a live brand-new account UI flow could not be completed here. The frontend empty states were verified by source and build: mock financial imports were removed, `mockData.ts` was deleted, and dashboard/insights/profile now render empty states unless live backend expense data exists.
 
 Backend API smoke verification was run with generated test users and automated JWT capture. Results:
 

@@ -54,7 +54,7 @@ public class ExpenseService {
         ExpenseGroup group = groupService.getGroup(request.groupId());
         groupService.requireActiveMember(group, actor);
 
-        User payer = loadUser(request.payerId());
+        User payer = resolveCreatePayer(request.payerId(), actor);
         groupService.requireActiveMember(group, payer);
 
         Expense expense = new Expense();
@@ -79,6 +79,7 @@ public class ExpenseService {
 
         User payer = loadUser(request.payerId());
         groupService.requireActiveMember(expense.getGroup(), payer);
+        requirePayerChangeAllowed(expense, actor, payer);
 
         expense.setPayer(payer);
         applyExpenseFields(expense, request.categoryId(), request.description(), request.amount(),
@@ -211,6 +212,23 @@ public class ExpenseService {
         boolean isPayer = expense.getPayer().getId().equals(actor.getId());
         if (!isOwner && !isPayer) {
             throw new ForbiddenException("Only the payer or group owner can manage this expense");
+        }
+    }
+
+    private User resolveCreatePayer(UUID requestedPayerId, User actor) {
+        if (requestedPayerId == null) {
+            return actor;
+        }
+        if (!requestedPayerId.equals(actor.getId())) {
+            throw new ForbiddenException("You can only create expenses where you are the payer");
+        }
+        return actor;
+    }
+
+    private void requirePayerChangeAllowed(Expense expense, User actor, User payer) {
+        boolean isOwner = expense.getGroup().getOwner().getId().equals(actor.getId());
+        if (!isOwner && !payer.getId().equals(actor.getId())) {
+            throw new ForbiddenException("You cannot assign another member as payer");
         }
     }
 

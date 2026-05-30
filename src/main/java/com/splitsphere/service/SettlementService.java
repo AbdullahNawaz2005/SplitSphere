@@ -41,12 +41,13 @@ public class SettlementService {
         ExpenseGroup group = groupService.getGroup(request.groupId());
         groupService.requireActiveMember(group, actor);
 
-        if (request.payerId().equals(request.receiverId())) {
+        User payer = resolvePayer(request.payerId(), actor);
+        User receiver = loadUser(request.receiverId());
+
+        if (payer.getId().equals(receiver.getId())) {
             throw new BadRequestException("Payer and receiver must be different users");
         }
 
-        User payer = loadUser(request.payerId());
-        User receiver = loadUser(request.receiverId());
         groupService.requireActiveMember(group, payer);
         groupService.requireActiveMember(group, receiver);
         MoneyUtils.requirePositive(request.amount(), "Settlement amount");
@@ -75,8 +76,8 @@ public class SettlementService {
         Settlement settlement = settlementRepository.findById(settlementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement not found"));
         groupService.requireActiveMember(settlement.getGroup(), actor);
-        if (!settlement.getPayer().getId().equals(actor.getId()) && !settlement.getGroup().getOwner().getId().equals(actor.getId())) {
-            throw new ForbiddenException("Only the payer or group owner can complete this settlement");
+        if (!settlement.getReceiver().getId().equals(actor.getId()) && !settlement.getGroup().getOwner().getId().equals(actor.getId())) {
+            throw new ForbiddenException("Only the receiver or group owner can complete this settlement");
         }
         if (settlement.getStatus() == SettlementStatus.CANCELLED) {
             throw new BadRequestException("Cancelled settlements cannot be completed");
@@ -90,5 +91,15 @@ public class SettlementService {
     private User loadUser(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+    }
+
+    private User resolvePayer(UUID requestedPayerId, User actor) {
+        if (requestedPayerId == null) {
+            return actor;
+        }
+        if (!requestedPayerId.equals(actor.getId())) {
+            throw new ForbiddenException("You can only record settlements where you are the payer");
+        }
+        return actor;
     }
 }

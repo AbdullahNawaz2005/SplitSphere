@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Zap, ArrowRight, Check, Clock, AlertTriangle } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import Avatar from '../components/Avatar'
+import { useAppearance } from '../contexts/AppearanceContext'
 import { useToast } from '../contexts/ToastContext'
 import { SettlementResponse, SettlementSuggestionResponse } from '../services/api'
 import { groupService } from '../services/groupService'
@@ -71,6 +72,7 @@ const SettlementsPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [settlingId, setSettlingId] = useState<string | null>(null)
   const { showToast } = useToast()
+  useAppearance()
 
   const loadSettlements = async () => {
     setLoading(true)
@@ -131,7 +133,7 @@ const SettlementsPage: React.FC = () => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Smart Settlements</h1>
           <p className="text-sm text-on-surface-variant mt-1">
-            We've optimized your group's debts. Pay less often, settle faster.
+            Record optimized settlements from your live group balances.
           </p>
         </motion.div>
 
@@ -146,7 +148,7 @@ const SettlementsPage: React.FC = () => {
                 <p className="text-2xl font-bold">{stepsRemoved}</p>
               </div>
             </div>
-            <p className="text-xs text-on-surface-variant mt-2">Optimized payment steps across your active groups.</p>
+            <p className="text-xs text-on-surface-variant mt-2">Optimized settlement steps across your active groups.</p>
           </GlassCard>
           <GlassCard hover={false} delay={0.15}>
             <div className="flex items-center gap-3">
@@ -158,7 +160,7 @@ const SettlementsPage: React.FC = () => {
                 <p className="text-2xl font-bold text-gradient">{money(totalSuggested)}</p>
               </div>
             </div>
-            <p className="text-xs text-on-surface-variant mt-2">Total value waiting to settle.</p>
+            <p className="text-xs text-on-surface-variant mt-2">Total value waiting to record.</p>
           </GlassCard>
           <GlassCard hover={false} delay={0.2}>
             <div className="flex items-center gap-3">
@@ -195,7 +197,7 @@ const SettlementsPage: React.FC = () => {
                         <p className="font-semibold text-sm">
                           {settlement.fromUserName.split(' ')[0]} {'->'} {settlement.toUserName.split(' ')[0]}
                         </p>
-                        <p className="text-xs text-on-surface-variant">{settlement.groupName} - {settlement.originalTransactions} optimized transaction</p>
+                <p className="text-xs text-on-surface-variant">{settlement.groupName} - {settlement.originalTransactions} optimized settlement</p>
                       </div>
                       <div className="text-right space-y-1">
                         <p className="text-lg font-bold">{money(settlement.amount)}</p>
@@ -206,9 +208,8 @@ const SettlementsPage: React.FC = () => {
                     </div>
                     {(settlement.status === 'PENDING' || settlement.status === 'SUGGESTED') && (
                       <div className="mt-4 flex justify-end gap-2">
-                        <button className="btn-ghost text-xs" onClick={() => showToast('Reminder delivery is not exposed by the backend yet.', 'info')}>Remind</button>
                         <button disabled={settlingId === settlement.id} onClick={() => settleNow(settlement)} className="btn-primary text-xs py-2 px-4 disabled:opacity-60">
-                          {settlingId === settlement.id ? 'Settling...' : 'Settle Now'}
+                          {settlingId === settlement.id ? 'Recording...' : 'Mark Settled'}
                         </button>
                       </div>
                     )}

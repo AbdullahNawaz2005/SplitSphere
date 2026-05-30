@@ -642,3 +642,63 @@ Runtime verification note:
 
 - Live Google login requires a real Google OAuth web client ID configured in both backend and frontend and a browser sign-in to produce a Google ID token.
 - Full backend API runtime verification remains blocked in this shell by the missing correct Neon `DB_PASSWORD` noted in section 13.
+
+## 15. Security Audit Remediation - 2026-05-30
+
+Fixed high-severity broken access control findings from the production security audit.
+
+Files changed:
+
+- `pom.xml`
+- `src/main/java/com/splitsphere/config/OpenApiConfig.java`
+- `src/main/java/com/splitsphere/config/SecurityConfig.java`
+- `src/main/java/com/splitsphere/dto/expense/CreateExpenseRequest.java`
+- `src/main/java/com/splitsphere/dto/settlement/CreateSettlementRequest.java`
+- `src/main/java/com/splitsphere/security/RateLimitingFilter.java`
+- `src/main/java/com/splitsphere/service/ExpenseService.java`
+- `src/main/java/com/splitsphere/service/SettlementService.java`
+- `src/main/resources/application.yml`
+- `src/test/java/com/splitsphere/security/RateLimitingFilterTest.java`
+- `src/test/java/com/splitsphere/service/ExpenseServiceSecurityTest.java`
+- `src/test/java/com/splitsphere/service/SettlementServiceSecurityTest.java`
+- `SECURITY_AUDIT_REPORT.md`
+
+Security fixes:
+
+- Expense creation now requires the authenticated actor to be the payer. Missing `payerId` defaults to the actor.
+- Expense update now prevents non-owner payer reassignment to another user.
+- Settlement creation now requires the authenticated actor to be the settlement payer. Missing `payerId` defaults to the actor.
+- Settlement receiver must still be an active group member, and payer/receiver equality is rejected.
+- Settlement completion now allows only the receiver or group owner. Payer alone cannot mark their own settlement completed.
+- Rate limiting no longer trusts `X-Forwarded-For`; public limits use `request.getRemoteAddr()` and authenticated limits use user id.
+- Duplicate route families were kept for frontend compatibility, but both expense and settlement route variants use the same secured service methods.
+- Swagger/OpenAPI is disabled by default, enabled by default only for `local`/`dev`, and unauthenticated Swagger access is only permitted in `local`/`dev` profiles.
+
+Tests added:
+
+- `ExpenseServiceSecurityTest`
+- `SettlementServiceSecurityTest`
+- `RateLimitingFilterTest`
+
+Verification:
+
+```powershell
+mvn clean test
+```
+
+Result:
+
+- PASS
+- Tests run: 19
+- Failures: 0
+- Errors: 0
+- Skipped: 0
+
+API smoke test status:
+
+- `curl.exe -s -o NUL -w "%{http_code}" http://localhost:8080/actuator/health` returned `000`.
+- `tools/run-api-test.ps1` was not run because no backend process was reachable on `localhost:8080`.
+
+Remaining production note:
+
+- The in-memory rate limiter is suitable for a single backend instance. Use Redis or another shared limiter before horizontal scaling.

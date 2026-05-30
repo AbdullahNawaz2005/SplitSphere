@@ -65,7 +65,7 @@ const LoginPage: React.FC = () => {
             <h1 className="text-2xl font-bold tracking-tight">
               Split<span className="text-gradient">Sphere</span>
             </h1>
-            <p className="text-sm text-on-surface-variant">Premium Finance for the Modern Socialite</p>
+            <p className="text-sm text-on-surface-variant">Shared expense tracking with live backend data</p>
           </div>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
@@ -85,9 +85,6 @@ const LoginPage: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="flex justify-end">
-              <a href="#" className="text-xs text-primary hover:underline">Forgot password?</a>
-            </div>
             <button type="submit" disabled={loading} className="btn-primary w-full block text-center py-3.5 text-sm disabled:opacity-60">
               {loading ? 'Signing In...' : 'Sign In'}
             </button>
@@ -101,10 +98,6 @@ const LoginPage: React.FC = () => {
           <p className="text-center text-sm text-on-surface-variant">
             New to SplitSphere? <Link to="/signup" className="text-primary font-semibold hover:underline">Sign up</Link>
           </p>
-        </div>
-        <div className="flex justify-center gap-6 mt-6 text-xs text-on-surface-variant">
-          <a href="#" className="hover:text-on-surface transition-colors">Terms of Service</a>
-          <a href="#" className="hover:text-on-surface transition-colors">Privacy Policy</a>
         </div>
       </motion.div>
     </div>

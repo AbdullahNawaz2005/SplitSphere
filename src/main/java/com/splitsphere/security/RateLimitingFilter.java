@@ -95,10 +95,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String clientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
+        // Render terminates traffic before the app, but X-Forwarded-For remains user-controllable
+        // unless a trusted proxy chain is explicitly enforced. Use the servlet remote address
+        // so spoofed forwarded headers cannot reset public rate-limit buckets.
         return request.getRemoteAddr();
     }
 

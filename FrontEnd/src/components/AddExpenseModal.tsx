@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, DollarSign, Tag, Users, Check, ChevronRight } from 'lucide-react'
-import { categories as fallbackCategories } from '../data/mockData'
-import { colorFor, initialsFor } from '../utils/display'
+import { X, Tag, Users, Check, ChevronRight, ReceiptText } from 'lucide-react'
+import { useAppearance } from '../contexts/AppearanceContext'
+import { colorFor, initialsFor, money } from '../utils/display'
 
 interface AddExpenseModalProps {
   isOpen: boolean
@@ -44,6 +44,14 @@ export interface AddExpensePayload {
 const steps = ['amount', 'category', 'people', 'summary'] as const
 type Step = typeof steps[number]
 
+const fallbackCategories: ModalCategory[] = [
+  { id: 'food', name: 'Food & Drink', icon: '🍽️', color: '#10b981' },
+  { id: 'housing', name: 'Housing', icon: '🏠', color: '#06b6d4' },
+  { id: 'transport', name: 'Transport', icon: '🚗', color: '#a855f7' },
+  { id: 'utilities', name: 'Utilities', icon: '📡', color: '#ef4444' },
+  { id: 'other', name: 'Other', icon: '🧾', color: '#6b7280' },
+]
+
 const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   isOpen,
   onClose,
@@ -62,6 +70,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedPeople, setSelectedPeople] = useState<string[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState(defaultGroupId ?? groups[0]?.id ?? '')
+  useAppearance()
 
   const stepIndex = steps.indexOf(currentStep)
   const visibleCategories = categories?.length ? categories : fallbackCategories
@@ -198,10 +207,10 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                       <p className="text-sm text-on-surface-variant mt-1">Enter the total bill amount</p>
                     </div>
                     <div className="relative">
-                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-primary-container" />
+                      <ReceiptText className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-primary-container" />
                       <input
                         type="number"
-                        placeholder="0.00"
+                        placeholder="Rs. 0.00"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         className="w-full pl-14 pr-4 py-4 text-3xl font-bold glass-input rounded-2xl outline-none text-on-surface placeholder:text-outline-variant"
@@ -212,7 +221,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                       <label className="text-xs font-medium uppercase tracking-widest text-on-surface-variant mb-2 block">Description</label>
                       <input
                         type="text"
-                        placeholder="e.g. Dinner at Sunset Grill"
+                        placeholder="e.g. Group dinner"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         className="w-full px-4 py-3 glass-input rounded-xl outline-none text-on-surface placeholder:text-outline-variant text-sm"
@@ -335,12 +344,12 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                     <div className="glass-subtle rounded-2xl p-5 space-y-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-bold text-lg">{title || 'Dinner at Sunset Grill'}</p>
+                          <p className="font-bold text-lg">{title || 'Untitled expense'}</p>
                           <p className="text-xs text-on-surface-variant">
-                            {selectedCategoryData?.name || 'Food & Drink'} • Today
+                            {selectedCategoryData?.name || 'Uncategorized'} • Today
                           </p>
                         </div>
-                        <p className="text-2xl font-bold text-gradient">${parseFloat(amount || '0').toFixed(2)}</p>
+                        <p className="text-2xl font-bold text-gradient">{money(parseFloat(amount || '0'))}</p>
                       </div>
                       <div className="h-px bg-on-surface/5" />
                       <div className="space-y-3">
@@ -351,7 +360,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                               <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white text-xs font-bold">{initialsFor(currentUserName)}</div>
                               <span className="text-sm font-medium">{currentUserName}</span>
                             </div>
-                            <span className="text-sm font-bold text-primary-container">${splitAmount.toFixed(2)}</span>
+                            <span className="text-sm font-bold text-primary-container">{money(splitAmount)}</span>
                           </div>
                           {selectedPeopleData.map((user) => (
                               <div key={user.id} className="flex items-center justify-between">
@@ -361,7 +370,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                                   </div>
                                   <span className="text-sm font-medium">{user.name}</span>
                                 </div>
-                                <span className="text-sm font-bold">${splitAmount.toFixed(2)}</span>
+                                <span className="text-sm font-bold">{money(splitAmount)}</span>
                               </div>
                           ))}
                         </div>

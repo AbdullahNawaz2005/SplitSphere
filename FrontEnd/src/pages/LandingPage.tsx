@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Zap, Users, ScanLine, Shield, TrendingUp, ArrowRight, ChevronRight, Star } from 'lucide-react'
@@ -13,30 +13,30 @@ const features = [
   },
   {
     icon: ScanLine,
-    title: 'Smart Scanning',
-    description: 'Snap a photo of any receipt. Our AI picks out the items and tax so you can assign them in seconds.',
+    title: 'Expense Entry',
+    description: 'Add shared expenses to real groups, choose members, and let SplitSphere calculate equal splits.',
     color: '#06b6d4',
   },
   {
     icon: Shield,
-    title: 'Secure Settlements',
-    description: 'Integrate with your favorite bank or crypto wallet for instant, safe settlements.',
+    title: 'Recorded Settlements',
+    description: 'Mark settlements complete in SplitSphere without pretending to process external payments.',
     color: '#a855f7',
   },
   {
     icon: TrendingUp,
     title: 'Spending Insights',
-    description: 'Visualize where your money goes. Compare monthly shared expenses and optimize your budget.',
+    description: 'Review live backend totals and category splits when your group has real expenses.',
     color: '#f59e0b',
   },
 ]
 
-const floatingExpenses = [
-  { label: 'Dinner', amount: '$45.00', x: '8%', y: '15%', delay: 0 },
-  { label: 'Monthly Rent', amount: '$1,200.00', x: '72%', y: '10%', delay: 0.5 },
-  { label: 'Groceries', amount: '$82.15', x: '5%', y: '60%', delay: 1 },
-  { label: 'Concert', amount: '$150.00', x: '78%', y: '55%', delay: 1.5 },
-  { label: 'Coffee', amount: '$4.50', x: '45%', y: '75%', delay: 2 },
+const floatingHighlights = [
+  { label: 'Create groups', detail: 'Invite code ready', x: '8%', y: '15%', delay: 0 },
+  { label: 'Add expenses', detail: 'Backend synced', x: '72%', y: '10%', delay: 0.5 },
+  { label: 'Track balances', detail: 'Live totals only', x: '5%', y: '60%', delay: 1 },
+  { label: 'Record settlements', detail: 'No payment processing', x: '72%', y: '55%', delay: 1.5 },
+  { label: 'View insights', detail: 'Appears after expenses', x: '42%', y: '75%', delay: 2 },
 ]
 
 const stagger = {
@@ -75,7 +75,6 @@ const LandingPage: React.FC = () => {
           </Link>
           <div className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">Features</a>
-            <a href="#testimonials" className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">Reviews</a>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/login" className="btn-ghost text-sm hidden sm:inline-flex">Sign In</Link>
@@ -129,37 +128,37 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-tertiary-container" />
-                  Bank-grade security
+                  JWT-secured accounts
                 </div>
               </motion.div>
             </motion.div>
 
-            {/* Right - Floating expense cards */}
+            {/* Right - Floating app capability cards */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.3 }}
               className="relative hidden lg:block h-[500px]"
             >
-              {floatingExpenses.map((expense, i) => (
+              {floatingHighlights.map((item, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, y: 20, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.5, delay: expense.delay * 0.3 + 0.5 }}
+                  transition={{ duration: 0.5, delay: item.delay * 0.3 + 0.5 }}
                   className="absolute glass-strong rounded-2xl px-5 py-3"
-                  style={{ left: expense.x, top: expense.y }}
+                  style={{ left: item.x, top: item.y }}
                 >
                   <motion.div
                     animate={{ y: [0, -8, 0] }}
                     transition={{ duration: 4 + i, repeat: Infinity, ease: 'easeInOut' }}
                   >
-                    <p className="text-xs text-on-surface-variant">{expense.label}</p>
-                    <p className="text-lg font-bold tracking-tight">{expense.amount}</p>
+                    <p className="text-xs text-on-surface-variant">{item.label}</p>
+                    <p className="text-lg font-bold tracking-tight">{item.detail}</p>
                   </motion.div>
                 </motion.div>
               ))}
-              {/* Central dashboard mockup card */}
+              {/* Central app preview card */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -169,7 +168,7 @@ const LandingPage: React.FC = () => {
                 <div className="glass-strong rounded-3xl p-6 space-y-4">
                   <div className="text-center">
                     <p className="text-xs uppercase tracking-widest text-on-surface-variant mb-1">Total Balance</p>
-                    <p className="text-3xl font-bold text-gradient">$2,847.30</p>
+                    <p className="text-3xl font-bold text-gradient">Live</p>
                   </div>
                   <div className="flex justify-center gap-1">
                     {['#10b981', '#06b6d4', '#a855f7', '#f59e0b'].map((color, i) => (
@@ -181,7 +180,7 @@ const LandingPage: React.FC = () => {
                     ))}
                   </div>
                   <div className="text-center">
-                    <span className="chip chip-emerald">3 Active Groups</span>
+                    <span className="chip chip-emerald">Backend connected</span>
                   </div>
                 </div>
               </motion.div>
@@ -204,7 +203,7 @@ const LandingPage: React.FC = () => {
               Simplified <span className="text-gradient">settlement.</span>
             </h2>
             <p className="text-on-surface-variant max-w-2xl mx-auto">
-              Our smart algorithm reduces 12 payments to just 3. Less transactions, less fees, less awkwardness.
+              SplitSphere turns group balances into clear settlement suggestions you can record when friends settle up.
             </p>
           </motion.div>
         </div>
@@ -259,11 +258,6 @@ const LandingPage: React.FC = () => {
       <footer className="relative z-10 py-8 px-5 md:px-10 border-t border-white/10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-on-surface-variant">
           <p>© 2024 SplitSphere. All rights reserved.</p>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-on-surface transition-colors">Terms</a>
-            <a href="#" className="hover:text-on-surface transition-colors">Privacy</a>
-            <a href="#" className="hover:text-on-surface transition-colors">Support</a>
-          </div>
         </div>
       </footer>
     </div>

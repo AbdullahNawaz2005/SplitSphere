@@ -16,7 +16,7 @@ import java.util.UUID;
 
 public record CreateExpenseRequest(
         UUID groupId,
-        @NotNull UUID payerId,
+        UUID payerId,
         UUID categoryId,
         @JsonAlias("title") @NotBlank @Size(max = 150) @Pattern(regexp = "^[^<>]*$", message = "must not contain HTML markup") String description,
         @NotNull @DecimalMin(value = "0.01") BigDecimal amount,

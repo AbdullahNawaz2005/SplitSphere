@@ -81,6 +81,87 @@ body {
   overflow-x: hidden;
 }
 
+html.dark {
+  color-scheme: dark;
+  --color-primary: #6ffbbe;
+  --color-primary-container: #35d99a;
+  --color-on-primary-container: #d8ffed;
+  --color-secondary-container: #47d3f2;
+  --color-tertiary-container: #c99cff;
+  --color-surface: #07130f;
+  --color-surface-dim: #101c18;
+  --color-surface-bright: #162620;
+  --color-surface-container: #12211b;
+  --color-surface-container-low: #0c1914;
+  --color-surface-container-high: #1a2c25;
+  --color-surface-container-highest: #22372f;
+  --color-surface-container-lowest: #06100c;
+  --color-on-surface: #edf7f1;
+  --color-on-surface-variant: #b8c9c0;
+  --color-outline: #91a49a;
+  --color-outline-variant: #3c5047;
+  --color-inverse-surface: #dce9e2;
+  --color-inverse-on-surface: #13211b;
+  --color-error: #ffb4ab;
+}
+
+html.dark body {
+  background: var(--color-surface);
+}
+
+html.dark .glass {
+  background: rgba(8, 20, 16, 0.62);
+  border-color: rgba(168, 214, 195, 0.14);
+  box-shadow: 0px 14px 36px rgba(0, 0, 0, 0.22);
+}
+
+html.dark .glass-strong {
+  background: rgba(11, 27, 22, 0.76);
+  border-color: rgba(168, 214, 195, 0.2);
+  box-shadow: 0px 16px 44px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .glass-subtle,
+html.dark .glass-input {
+  background: rgba(20, 41, 34, 0.52);
+  border-color: rgba(168, 214, 195, 0.12);
+}
+
+html.dark .glass-input:focus {
+  background: rgba(25, 52, 43, 0.72);
+}
+
+html.dark .btn-ghost:hover,
+html.dark .btn-secondary:hover,
+html.dark .card-hover:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .chip-emerald {
+  background: rgba(16, 185, 129, 0.16);
+  color: #8ef8c6;
+}
+
+html.dark .chip-cyan {
+  background: rgba(6, 182, 212, 0.16);
+  color: #8defff;
+}
+
+html.dark .chip-purple {
+  background: rgba(168, 85, 247, 0.16);
+  color: #ddb7ff;
+}
+
+html.dark .chip-red {
+  background: rgba(239, 68, 68, 0.16);
+  color: #ffb4ab;
+}
+
+html.dark .chip-orange {
+  background: rgba(245, 158, 11, 0.16);
+  color: #ffd18a;
+}
+
 /* ── Glassmorphism Utilities ── */
 .glass {
   background: rgba(255, 255, 255, 0.6);

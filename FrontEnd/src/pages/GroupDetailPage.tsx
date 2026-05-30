@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Plus, Settings, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Plus } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import Avatar, { AvatarStack } from '../components/Avatar'
 import AddExpenseModal, { AddExpensePayload, ModalUser } from '../components/AddExpenseModal'
+import { useAppearance } from '../contexts/AppearanceContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { CategoryResponse, ExpenseResponse, GroupBalanceResponse, GroupResponse } from '../services/api'
@@ -29,6 +30,7 @@ const GroupDetailPage: React.FC = () => {
   const [submittingExpense, setSubmittingExpense] = useState(false)
   const { user } = useAuth()
   const { showToast } = useToast()
+  useAppearance()
 
   const loadGroup = async () => {
     if (!id) return
@@ -124,9 +126,6 @@ const GroupDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <button className="p-2 rounded-xl glass-subtle hover:bg-white/40 transition-colors">
-            <Settings className="w-5 h-5" />
-          </button>
         </motion.div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -196,7 +195,6 @@ const GroupDetailPage: React.FC = () => {
                     <p className="text-sm font-bold">{money(expense.amount)}</p>
                     <p className="text-[10px] text-on-surface-variant">{money(expense.amount / Math.max(expense.splits?.length ?? members.length, 1))}/person</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-outline-variant" />
                 </div>
               </motion.div>
             )) : (

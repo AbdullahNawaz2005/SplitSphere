@@ -63,7 +63,7 @@ const SignupPage: React.FC = () => {
               <Zap className="w-7 h-7 text-white" />
             </motion.div>
             <h1 className="text-2xl font-bold tracking-tight">Create your <span className="text-gradient">account</span></h1>
-            <p className="text-sm text-on-surface-variant">Join thousands of students splitting smarter</p>
+            <p className="text-sm text-on-surface-variant">Create groups and track real shared expenses</p>
           </div>
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">

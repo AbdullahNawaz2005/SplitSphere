@@ -1,3 +1,5 @@
+import { readCurrencyPreference, USD_TO_PKR_DISPLAY_RATE, currencyOptions } from './preferences'
+
 export const palette = ['#10b981', '#06b6d4', '#a855f7', '#f59e0b', '#ef4444', '#8b5cf6']
 export const groupIcons = ['🏠', '🚗', '🍽️', '📚', '🎉', '🧾']
 
@@ -21,7 +23,14 @@ export const iconFor = (value?: string) => {
   return groupIcons[sum % groupIcons.length]
 }
 
-export const money = (value?: number) => `$${Number(value ?? 0).toFixed(2)}`
+export const money = (value?: number) => {
+  const currency = readCurrencyPreference()
+  const basePkrAmount = Number(value ?? 0)
+  const displayValue = currency === 'USD' ? basePkrAmount / USD_TO_PKR_DISPLAY_RATE : basePkrAmount
+  const symbol = currencyOptions[currency].symbol
+  return currency === 'PKR' ? `${symbol} ${displayValue.toFixed(2)}` : `${symbol}${displayValue.toFixed(2)}`
+}
+
 
 export const shortDate = (value?: string) => {
   if (!value) return 'Today'
