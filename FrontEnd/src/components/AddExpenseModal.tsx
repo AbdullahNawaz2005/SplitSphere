@@ -38,6 +38,7 @@ interface AddExpenseModalProps {
   currentUserId?: string
   currentUserName?: string
   members?: ModalUser[]
+  groupMembersByGroup?: Record<string, ModalUser[]>
   categories?: ModalCategory[]
   isSubmitting?: boolean
   onSubmit?: (payload: AddExpensePayload) => Promise<void> | void
@@ -122,6 +123,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   currentUserId,
   currentUserName = 'You',
   members = [],
+  groupMembersByGroup,
   categories,
   isSubmitting = false,
   onSubmit,
@@ -163,16 +165,23 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     [categorySearch, visibleCategories]
   )
   const activePayerId = currentUserId ?? members[0]?.id ?? ''
-  const visibleMembers = useMemo(
-    () => members.filter((member) => member.id !== activePayerId),
-    [activePayerId, members]
+  const selectedGroupMembers = useMemo(
+    () => (selectedGroupId && groupMembersByGroup?.[selectedGroupId]) || members,
+    [groupMembersByGroup, members, selectedGroupId]
   )
 
   useEffect(() => {
     if (isOpen) {
       setSelectedGroupId(defaultGroupId ?? groups[0]?.id ?? '')
+      setSelectedPeople([])
     }
   }, [defaultGroupId, groups, isOpen])
+
+  useEffect(() => {
+    setSelectedPeople((previous) =>
+      previous.filter((id) => selectedGroupMembers.some((member) => member.id === id))
+    )
+  }, [selectedGroupMembers])
 
   const resetAndClose = () => {
     setCurrentStep('amount')
@@ -216,6 +225,11 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       return false
     }
 
+    if (currentStep === 'people' && selectedPeople.length === 0) {
+      showToast('Select at least one split participant.', 'error')
+      return false
+    }
+
     return true
   }
 
@@ -236,9 +250,17 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     )
   }
 
-  const splitAmount = (validAmount ? amountValue : 0) / (selectedPeople.length + 1)
+  const selectAllPeople = () => {
+    setSelectedPeople(selectedGroupMembers.map((member) => member.id))
+  }
+
+  const clearPeople = () => {
+    setSelectedPeople([])
+  }
+
+  const splitAmount = selectedPeople.length > 0 ? (validAmount ? amountValue : 0) / selectedPeople.length : 0
   const selectedPeopleData = selectedPeople
-    .map((id) => members.find((member) => member.id === id))
+    .map((id) => selectedGroupMembers.find((member) => member.id === id))
     .filter(Boolean) as ModalUser[]
 
   const submitExpense = async () => {
@@ -258,6 +280,10 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       showToast('Choose a category before submitting.', 'error')
       return
     }
+    if (selectedPeople.length === 0) {
+      showToast('Select at least one split participant.', 'error')
+      return
+    }
     // Temporary input conversion: users enter the selected display currency,
     // while the current backend contract stores all expense amounts as PKR.
     const basePkrAmount = toBasePkrAmount(amountValue, currency)
@@ -267,7 +293,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
       title: title.trim(),
       amount: Number(basePkrAmount.toFixed(2)),
       categoryId: selectedCategoryData.backendId,
-      splitUserIds: [activePayerId, ...selectedPeople],
+      splitUserIds: selectedPeople,
     })
     resetAndClose()
   }
@@ -378,7 +404,10 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         <label className="text-xs font-medium uppercase tracking-widest text-on-surface-variant mb-2 block">Group</label>
                         <select
                           value={selectedGroupId}
-                          onChange={(event) => setSelectedGroupId(event.target.value)}
+                          onChange={(event) => {
+                            setSelectedGroupId(event.target.value)
+                            setSelectedPeople([])
+                          }}
                           className="w-full px-4 py-3 glass-input rounded-xl outline-none text-on-surface text-sm"
                         >
                           {groups.map((group) => (
@@ -458,41 +487,78 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                     className="space-y-6"
                   >
                     <div>
-                      <h3 className="text-2xl font-bold tracking-tight">Who's involved?</h3>
-                      <p className="text-sm text-on-surface-variant mt-1">Select people to split the bill with</p>
+                      <h3 className="text-2xl font-bold tracking-tight">Split between</h3>
+                      <p className="text-sm text-on-surface-variant mt-1">Choose exactly who this expense is for</p>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-xs text-on-surface-variant">
+                        {selectedPeople.length} of {selectedGroupMembers.length} selected
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={selectAllPeople} className="btn-ghost text-xs px-3 py-2">
+                          Select all
+                        </button>
+                        <button type="button" onClick={clearPeople} className="btn-ghost text-xs px-3 py-2">
+                          Clear
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      {visibleMembers.length > 0 ? visibleMembers.map((user) => (
-                        <button
+                      {selectedGroupMembers.length > 0 ? selectedGroupMembers.map((user) => {
+                        const checked = selectedPeople.includes(user.id)
+                        return (
+                        <label
                           key={user.id}
-                          onClick={() => togglePerson(user.id)}
-                          className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 ${
-                            selectedPeople.includes(user.id)
+                          className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 cursor-pointer ${
+                            checked
                               ? 'glass-strong ring-2 ring-primary-container'
                               : 'glass-subtle hover:bg-white/40'
                           }`}
                         >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => togglePerson(user.id)}
+                            className="sr-only"
+                          />
                           <div
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
                             style={{ backgroundColor: user.color ?? colorFor(user.id) }}
                           >
                             {user.initials ?? initialsFor(user.name)}
                           </div>
-                          <div className="text-left flex-1">
-                            <p className="text-sm font-semibold">{user.name}</p>
-                            <p className="text-xs text-on-surface-variant">{user.email}</p>
+                          <div className="text-left flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">
+                              {user.id === activePayerId ? `${user.name} (payer)` : user.name}
+                            </p>
+                            <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
                           </div>
                           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                            selectedPeople.includes(user.id) ? 'bg-primary-container border-primary-container' : 'border-outline-variant'
+                            checked ? 'bg-primary-container border-primary-container' : 'border-outline-variant'
                           }`}>
-                            {selectedPeople.includes(user.id) && <Check className="w-3 h-3 text-white" />}
+                            {checked && <Check className="w-3 h-3 text-white" />}
                           </div>
-                        </button>
-                      )) : (
+                        </label>
+                        )
+                      }) : (
                         <div className="glass-subtle rounded-2xl p-5 text-center text-sm text-on-surface-variant">
-                          Add members to this group before splitting with others.
+                          No active members were found for this group.
                         </div>
                       )}
+                    </div>
+                    <div className="glass-subtle rounded-2xl p-4 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-on-surface-variant">Total</span>
+                        <span className="font-bold">{formatCurrencyAmount(validAmount ? amountValue : 0, currency)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-on-surface-variant">Split between</span>
+                        <span className="font-bold">{selectedPeople.length} {selectedPeople.length === 1 ? 'person' : 'people'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-on-surface-variant">Each share</span>
+                        <span className="font-bold text-primary-container">{formatCurrencyAmount(splitAmount, currency)}</span>
+                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -524,20 +590,13 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                       <div className="space-y-3">
                         <p className="text-xs font-medium uppercase tracking-widest text-on-surface-variant">Split Between</p>
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white text-xs font-bold">{initialsFor(currentUserName)}</div>
-                              <span className="text-sm font-medium">{currentUserName}</span>
-                            </div>
-                            <span className="text-sm font-bold text-primary-container">{formatCurrencyAmount(splitAmount, currency)}</span>
-                          </div>
                           {selectedPeopleData.map((user) => (
                               <div key={user.id} className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: user.color ?? colorFor(user.id) }}>
                                     {user.initials ?? initialsFor(user.name)}
                                   </div>
-                                  <span className="text-sm font-medium">{user.name}</span>
+                                  <span className="text-sm font-medium">{user.id === activePayerId ? `${user.name} (payer)` : user.name}</span>
                                 </div>
                                 <span className="text-sm font-bold">{formatCurrencyAmount(splitAmount, currency)}</span>
                               </div>
@@ -560,7 +619,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               </button>
               <button
                 onClick={stepIndex === steps.length - 1 ? submitExpense : nextStep}
-                disabled={isSubmitting || (stepIndex === steps.length - 1 && (!canContinueFromAmount || !selectedCategoryData))}
+                disabled={isSubmitting || (stepIndex === steps.length - 1 && (!canContinueFromAmount || !selectedCategoryData || selectedPeople.length === 0))}
                 className="btn-primary flex items-center gap-2"
               >
                 {stepIndex === steps.length - 1 ? (isSubmitting ? 'Splitting...' : 'Split Expense') : 'Continue'}

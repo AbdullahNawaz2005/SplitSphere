@@ -11,6 +11,7 @@ import { useToast } from '../contexts/ToastContext'
 import { ActivityLogResponse, CategoryResponse, ExpenseResponse, GroupResponse } from '../services/api'
 import { expenseService } from '../services/expenseService'
 import { groupService } from '../services/groupService'
+import { settlementService } from '../services/settlementService'
 import { categoryLabel, colorFor, iconFor, initialsFor, money, relativeTime, shortDate } from '../utils/display'
 
 const stagger = {
@@ -34,6 +35,7 @@ const DashboardPage: React.FC = () => {
   const [groups, setGroups] = useState<GroupResponse[]>([])
   const [expenses, setExpenses] = useState<ExpenseResponse[]>([])
   const [activities, setActivities] = useState<ActivityLogResponse[]>([])
+  const [pendingConfirmations, setPendingConfirmations] = useState<Array<{ id: string; groupName: string; payerName: string; amount: number }>>([])
   const [members, setMembers] = useState<Record<string, ModalUser[]>>({})
   const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [balances, setBalances] = useState<Record<string, number>>({})
@@ -50,13 +52,14 @@ const DashboardPage: React.FC = () => {
       setGroups(groupList)
       const results = await Promise.all(
         groupList.map(async (group) => {
-          const [expensePage, balanceResponse, groupMembers, activityPage] = await Promise.all([
+          const [expensePage, balanceResponse, groupMembers, activityPage, settlementPage] = await Promise.all([
             expenseService.listByGroup(group.id).catch(() => null),
             groupService.balances(group.id).catch(() => null),
             groupService.members(group.id).catch(() => []),
             groupService.activity(group.id).catch(() => null),
+            settlementService.listByGroup(group.id).catch(() => null),
           ])
-          return { group, expensePage, balanceResponse, groupMembers, activityPage }
+          return { group, expensePage, balanceResponse, groupMembers, activityPage, settlementPage }
         })
       )
       setExpenses(results.flatMap((result) => result.expensePage?.content ?? []))
@@ -72,6 +75,21 @@ const DashboardPage: React.FC = () => {
             result.group.id,
             result.balanceResponse?.balances.find((balance) => balance.userId === user?.id)?.netBalance ?? 0,
           ])
+        )
+      )
+      setPendingConfirmations(
+        results.flatMap((result) =>
+          (result.settlementPage?.content ?? [])
+            .filter((settlement) =>
+              (settlement.status === 'PENDING' || settlement.status === 'PENDING_CONFIRMATION') &&
+              settlement.receiverId === user?.id
+            )
+            .map((settlement) => ({
+              id: settlement.id,
+              groupName: result.group.name,
+              payerName: settlement.payerName ?? 'Member',
+              amount: settlement.amount,
+            }))
         )
       )
       setMembers(
@@ -129,6 +147,21 @@ const DashboardPage: React.FC = () => {
       showToast(error instanceof Error ? error.message : 'Unable to add expense.', 'error')
     } finally {
       setSubmittingExpense(false)
+    }
+  }
+
+  const resolveSettlement = async (settlementId: string, accepted: boolean) => {
+    try {
+      if (accepted) {
+        await settlementService.complete(settlementId)
+        showToast('Payment confirmed.', 'success')
+      } else {
+        await settlementService.reject(settlementId)
+        showToast('Payment marked not received.', 'success')
+      }
+      await loadDashboard()
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to update settlement.', 'error')
     }
   }
 
@@ -267,6 +300,29 @@ const DashboardPage: React.FC = () => {
           </div>
 
           <div>
+            {pendingConfirmations.length > 0 && (
+              <div className="mb-5">
+                <h3 className="text-lg font-bold tracking-tight mb-4">Pending Confirmations</h3>
+                <div className="space-y-3">
+                  {pendingConfirmations.slice(0, 3).map((settlement) => (
+                    <div key={settlement.id} className="glass rounded-2xl p-4">
+                      <p className="text-sm font-semibold">
+                        {settlement.payerName} marked {money(settlement.amount)} as paid to you.
+                      </p>
+                      <p className="text-xs text-on-surface-variant mt-1">{settlement.groupName}</p>
+                      <div className="mt-3 flex justify-end gap-2">
+                        <button onClick={() => resolveSettlement(settlement.id, false)} className="btn-ghost text-xs px-3 py-2">
+                          Not Received
+                        </button>
+                        <button onClick={() => resolveSettlement(settlement.id, true)} className="btn-primary text-xs px-3 py-2">
+                          Confirm Received
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold tracking-tight">Recent Activity</h3>
               <Link to="/activity" className="text-xs text-primary font-semibold hover:underline">View Timeline</Link>
@@ -307,6 +363,7 @@ const DashboardPage: React.FC = () => {
         currentUserId={user?.id}
         currentUserName={user?.name}
         members={activeMembers}
+        groupMembersByGroup={members}
         categories={categories}
         isSubmitting={submittingExpense}
         onSubmit={addExpense}

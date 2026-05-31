@@ -8,6 +8,7 @@ import { useAppearance } from '../contexts/AppearanceContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import { groupService } from '../services/groupService'
+import { settlementService } from '../services/settlementService'
 import { colorFor, initialsFor, money } from '../utils/display'
 import { CurrencyCode, currencyOptions } from '../utils/preferences'
 
@@ -15,6 +16,7 @@ const ProfilePage: React.FC = () => {
   const [groupCount, setGroupCount] = useState(0)
   const [totalShared, setTotalShared] = useState(0)
   const [expenseCount, setExpenseCount] = useState(0)
+  const [pendingConfirmations, setPendingConfirmations] = useState(0)
   const [loadingStats, setLoadingStats] = useState(true)
   const { user, logout } = useAuth()
   const { currency, darkMode, setCurrency, setDarkMode } = useAppearance()
@@ -28,10 +30,21 @@ const ProfilePage: React.FC = () => {
       setLoadingStats(true)
       try {
         const groups = await groupService.list()
-        const analytics = await Promise.all(groups.map((group) => groupService.analytics(group.id).catch(() => null)))
+        const [analytics, settlementPages] = await Promise.all([
+          Promise.all(groups.map((group) => groupService.analytics(group.id).catch(() => null))),
+          Promise.all(groups.map((group) => settlementService.listByGroup(group.id).catch(() => null))),
+        ])
         setGroupCount(groups.length)
         setTotalShared(analytics.reduce((sum, item) => sum + (item?.totalExpenses ?? 0), 0))
         setExpenseCount(analytics.reduce((sum, item) => sum + (item?.expenseCount ?? 0), 0))
+        setPendingConfirmations(
+          settlementPages
+            .flatMap((page) => page?.content ?? [])
+            .filter((settlement) =>
+              (settlement.status === 'PENDING' || settlement.status === 'PENDING_CONFIRMATION') &&
+              settlement.receiverId === user?.id
+            ).length
+        )
       } catch (error) {
         showToast(error instanceof Error ? error.message : 'Unable to load profile summary.', 'error')
       } finally {
@@ -108,6 +121,10 @@ const ProfilePage: React.FC = () => {
             ) : (
               <p className="text-sm font-semibold mt-2">No expenses yet. Add your first expense to see insights.</p>
             )}
+          </GlassCard>
+          <GlassCard hover={false} delay={0.28} className="md:col-span-2">
+            <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">Pending Settlement Confirmations</p>
+            <p className="text-2xl font-bold mt-1">{loadingStats ? '...' : pendingConfirmations}</p>
           </GlassCard>
         </div>
 

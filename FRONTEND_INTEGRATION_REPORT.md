@@ -240,3 +240,24 @@ http://localhost:5173
 1. Configure `.env` with `VITE_API_BASE_URL` and `VITE_GOOGLE_CLIENT_ID`.
 2. Run `npm run build` in `FrontEnd`.
 3. Run `npm run dev` and test Google sign-in plus email/password login.
+
+## Settlement Confirmation And Flexible Splits - 2026-06-01
+
+Frontend changes:
+
+- Add Expense now shows a real "Split between" member checklist using backend group member IDs.
+- The payer is no longer inserted automatically into splits; checked members are the only submitted split participants.
+- Payer can still be checked, and their own share is represented as a split without creating self-debt in optimized balances.
+- Select all, Clear, and live split preview were added.
+- Dashboard group switching passes the matching group's real member list into the modal.
+- Settlement suggestions now create pending settlement requests instead of immediately completing.
+- Receiver-visible pending confirmations show real backend settlement rows with Confirm Received and Not Received actions.
+- Settlement status badges distinguish Pending confirmation, Completed, and Rejected.
+
+Verification:
+
+```powershell
+npm run build
+```
+
+Result: PASS. TypeScript and Vite production build completed successfully.

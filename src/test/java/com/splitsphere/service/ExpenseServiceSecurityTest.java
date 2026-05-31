@@ -6,6 +6,7 @@ import com.splitsphere.entity.Expense;
 import com.splitsphere.entity.ExpenseGroup;
 import com.splitsphere.entity.User;
 import com.splitsphere.entity.enums.SplitType;
+import com.splitsphere.exception.BadRequestException;
 import com.splitsphere.exception.ForbiddenException;
 import com.splitsphere.repository.CategoryRepository;
 import com.splitsphere.repository.ExpenseRepository;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -50,6 +52,7 @@ class ExpenseServiceSecurityTest {
     private User owner;
     private User userA;
     private User userB;
+    private User userC;
     private ExpenseGroup group;
 
     @BeforeEach
@@ -65,6 +68,7 @@ class ExpenseServiceSecurityTest {
         owner = user("Owner");
         userA = user("User A");
         userB = user("User B");
+        userC = user("User C");
         group = group(owner);
     }
 
@@ -113,6 +117,89 @@ class ExpenseServiceSecurityTest {
     }
 
     @Test
+    void expenseCanBeSplitAmongSelectedSubsetOnly() {
+        when(currentUserService.getCurrentUser()).thenReturn(userA);
+        when(groupService.getGroup(group.getId())).thenReturn(group);
+        when(userRepository.findById(userB.getId())).thenReturn(Optional.of(userB));
+        when(userRepository.findById(userC.getId())).thenReturn(Optional.of(userC));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        expenseService.createExpense(createRequest(userA.getId(), userB.getId(), userC.getId()));
+
+        ArgumentCaptor<Expense> expenseCaptor = ArgumentCaptor.forClass(Expense.class);
+        verify(expenseRepository).save(expenseCaptor.capture());
+        assertThat(expenseCaptor.getValue().getSplits())
+                .extracting(split -> split.getUser().getId())
+                .containsExactly(userB.getId(), userC.getId());
+        assertThat(expenseCaptor.getValue().getSplits())
+                .extracting(ExpenseSplit -> ExpenseSplit.getOwedAmount())
+                .containsExactly(new BigDecimal("60.00"), new BigDecimal("60.00"));
+    }
+
+    @Test
+    void payerIsNotAutomaticallyIncludedInSplit() {
+        when(currentUserService.getCurrentUser()).thenReturn(userA);
+        when(groupService.getGroup(group.getId())).thenReturn(group);
+        when(userRepository.findById(userB.getId())).thenReturn(Optional.of(userB));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        expenseService.createExpense(createRequest(userA.getId(), userB.getId()));
+
+        ArgumentCaptor<Expense> expenseCaptor = ArgumentCaptor.forClass(Expense.class);
+        verify(expenseRepository).save(expenseCaptor.capture());
+        assertThat(expenseCaptor.getValue().getSplits()).hasSize(1);
+        assertThat(expenseCaptor.getValue().getSplits().get(0).getUser().getId()).isEqualTo(userB.getId());
+        assertThat(expenseCaptor.getValue().getSplits().get(0).getOwedAmount()).isEqualByComparingTo("120.00");
+    }
+
+    @Test
+    void onePersonSplitOwesFullAmount() {
+        when(currentUserService.getCurrentUser()).thenReturn(userA);
+        when(groupService.getGroup(group.getId())).thenReturn(group);
+        when(userRepository.findById(userC.getId())).thenReturn(Optional.of(userC));
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        expenseService.createExpense(createRequest(userA.getId(), userC.getId()));
+
+        ArgumentCaptor<Expense> expenseCaptor = ArgumentCaptor.forClass(Expense.class);
+        verify(expenseRepository).save(expenseCaptor.capture());
+        assertThat(expenseCaptor.getValue().getSplits()).hasSize(1);
+        assertThat(expenseCaptor.getValue().getSplits().get(0).getUser().getId()).isEqualTo(userC.getId());
+        assertThat(expenseCaptor.getValue().getSplits().get(0).getOwedAmount()).isEqualByComparingTo("120.00");
+    }
+
+    @Test
+    void nonMemberSplitParticipantIsRejected() {
+        when(currentUserService.getCurrentUser()).thenReturn(userA);
+        when(groupService.getGroup(group.getId())).thenReturn(group);
+        when(userRepository.findById(userC.getId())).thenReturn(Optional.of(userC));
+        org.mockito.Mockito.doAnswer(invocation -> {
+            User checkedUser = invocation.getArgument(1);
+            if (checkedUser.getId().equals(userC.getId())) {
+                throw new ForbiddenException("User is not an active member of this group");
+            }
+            return null;
+        }).when(groupService).requireActiveMember(eq(group), any(User.class));
+
+        assertThatThrownBy(() -> expenseService.createExpense(createRequest(userA.getId(), userC.getId())))
+                .isInstanceOf(ForbiddenException.class);
+
+        verify(expenseRepository, never()).save(any());
+    }
+
+    @Test
+    void duplicateSplitParticipantIsRejected() {
+        when(currentUserService.getCurrentUser()).thenReturn(userA);
+        when(groupService.getGroup(group.getId())).thenReturn(group);
+
+        assertThatThrownBy(() -> expenseService.createExpense(createRequest(userA.getId(), userB.getId(), userB.getId())))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Duplicate split participant");
+
+        verify(expenseRepository, never()).save(any());
+    }
+
+    @Test
     void nonMemberCannotCreateExpenseInGroup() {
         when(currentUserService.getCurrentUser()).thenReturn(userA);
         when(groupService.getGroup(group.getId())).thenReturn(group);
@@ -125,7 +212,10 @@ class ExpenseServiceSecurityTest {
         verify(expenseRepository, never()).save(any());
     }
 
-    private CreateExpenseRequest createRequest(UUID payerId) {
+    private CreateExpenseRequest createRequest(UUID payerId, UUID... splitUserIds) {
+        List<SplitRequest> splits = splitUserIds.length == 0
+                ? List.of(new SplitRequest(userA.getId(), null), new SplitRequest(userB.getId(), null))
+                : java.util.Arrays.stream(splitUserIds).map(userId -> new SplitRequest(userId, null)).toList();
         return new CreateExpenseRequest(
                 group.getId(),
                 payerId,
@@ -134,7 +224,7 @@ class ExpenseServiceSecurityTest {
                 new BigDecimal("120.00"),
                 SplitType.EQUAL,
                 null,
-                List.of(new SplitRequest(userA.getId(), null), new SplitRequest(userB.getId(), null))
+                splits
         );
     }
 

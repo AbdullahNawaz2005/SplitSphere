@@ -48,4 +48,9 @@ public class SettlementController {
     public SettlementResponse completeSettlement(@PathVariable UUID settlementId) {
         return settlementService.completeSettlement(settlementId);
     }
+
+    @PostMapping("/{settlementId}/reject")
+    public SettlementResponse rejectSettlement(@PathVariable UUID settlementId) {
+        return settlementService.rejectSettlement(settlementId);
+    }
 }

@@ -65,6 +65,79 @@ Response:
 
 Result: PASS
 
+## Settlement Confirmation Flow
+
+Create settlement request:
+
+`POST /api/groups/{groupId}/settlements`
+
+```json
+{
+  "payerId": "payer-user-id",
+  "receiverId": "receiver-user-id",
+  "amount": 500.00,
+  "note": "Paid in cash"
+}
+```
+
+Expected response status:
+
+```json
+{
+  "status": "PENDING_CONFIRMATION",
+  "settledAt": null
+}
+```
+
+Confirm received:
+
+`PATCH /api/settlements/{settlementId}/complete`
+
+- JWT user must be the receiver or group owner.
+- Expected response status: `COMPLETED`.
+- Balances update only after this response.
+
+Reject payment:
+
+`POST /api/settlements/{settlementId}/reject`
+
+- JWT user must be the receiver or group owner.
+- Expected response status: `REJECTED`.
+- Balances do not change.
+
+## Flexible Expense Split Participants
+
+Create expense for a selected subset:
+
+`POST /api/groups/{groupId}/expenses`
+
+```json
+{
+  "payerId": "abdullah-user-id",
+  "title": "Fuel",
+  "amount": 6000.00,
+  "splitType": "EQUAL",
+  "splits": [
+    { "userId": "seth-user-id" },
+    { "userId": "ali-user-id" },
+    { "userId": "ahmed-user-id" }
+  ]
+}
+```
+
+Expected behavior:
+
+- Only listed `splits` users are included.
+- Payer is included only if their user ID appears in `splits`.
+- One selected participant owes the full amount.
+- Duplicate split users return `400`.
+- Non-member split users return `403`.
+
+Verification on 2026-06-01:
+
+- `mvn clean test`: PASS, 27 tests run.
+- `npm run build`: PASS.
+
 ## Login Owner
 
 Endpoint: `POST /api/auth/login`

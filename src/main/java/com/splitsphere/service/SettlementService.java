@@ -57,9 +57,14 @@ public class SettlementService {
         settlement.setPayer(payer);
         settlement.setReceiver(receiver);
         settlement.setAmount(MoneyUtils.normalize(request.amount()));
-        settlement.setStatus(SettlementStatus.PENDING);
+        settlement.setStatus(SettlementStatus.PENDING_CONFIRMATION);
         Settlement saved = settlementRepository.save(settlement);
-        activityLogService.record(group, actor, "SETTLEMENT_CREATED", actor.getName() + " created a settlement route");
+        activityLogService.record(
+                group,
+                actor,
+                "SETTLEMENT_CREATED",
+                payer.getName() + " marked Rs. " + saved.getAmount() + " as paid to " + receiver.getName() + ". Confirm payment?"
+        );
         return SettlementResponse.from(saved);
     }
 
@@ -76,16 +81,63 @@ public class SettlementService {
         Settlement settlement = settlementRepository.findById(settlementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement not found"));
         groupService.requireActiveMember(settlement.getGroup(), actor);
+        requireReceiverOrOwner(settlement, actor, "complete");
+        requireConfirmable(settlement);
+        settlement.setStatus(SettlementStatus.COMPLETED);
+        settlement.setSettledAt(Instant.now());
+        activityLogService.record(
+                settlement.getGroup(),
+                actor,
+                "SETTLEMENT_CONFIRMED",
+                actor.getName() + " confirmed receiving Rs. " + settlement.getAmount() + " from " + settlement.getPayer().getName()
+        );
+        return SettlementResponse.from(settlementRepository.save(settlement));
+    }
+
+    @Transactional
+    public SettlementResponse rejectSettlement(UUID settlementId) {
+        User actor = currentUserService.getCurrentUser();
+        Settlement settlement = settlementRepository.findById(settlementId)
+                .orElseThrow(() -> new ResourceNotFoundException("Settlement not found"));
+        groupService.requireActiveMember(settlement.getGroup(), actor);
+        requireReceiverOrOwner(settlement, actor, "reject");
+        requireRejectable(settlement);
+        settlement.setStatus(SettlementStatus.REJECTED);
+        settlement.setSettledAt(null);
+        activityLogService.record(
+                settlement.getGroup(),
+                actor,
+                "SETTLEMENT_REJECTED",
+                actor.getName() + " marked Rs. " + settlement.getAmount() + " from " + settlement.getPayer().getName() + " as not received"
+        );
+        return SettlementResponse.from(settlementRepository.save(settlement));
+    }
+
+    private void requireReceiverOrOwner(Settlement settlement, User actor, String action) {
         if (!settlement.getReceiver().getId().equals(actor.getId()) && !settlement.getGroup().getOwner().getId().equals(actor.getId())) {
-            throw new ForbiddenException("Only the receiver or group owner can complete this settlement");
+            throw new ForbiddenException("Only the receiver or group owner can " + action + " this settlement");
+        }
+    }
+
+    private void requireConfirmable(Settlement settlement) {
+        if (settlement.getStatus() == SettlementStatus.COMPLETED) {
+            throw new BadRequestException("Settlement is already completed");
         }
         if (settlement.getStatus() == SettlementStatus.CANCELLED) {
             throw new BadRequestException("Cancelled settlements cannot be completed");
         }
-        settlement.setStatus(SettlementStatus.COMPLETED);
-        settlement.setSettledAt(Instant.now());
-        activityLogService.record(settlement.getGroup(), actor, "SETTLEMENT_COMPLETED", actor.getName() + " completed a settlement");
-        return SettlementResponse.from(settlementRepository.save(settlement));
+    }
+
+    private void requireRejectable(Settlement settlement) {
+        if (settlement.getStatus() == SettlementStatus.COMPLETED) {
+            throw new BadRequestException("Completed settlements cannot be rejected");
+        }
+        if (settlement.getStatus() == SettlementStatus.CANCELLED) {
+            throw new BadRequestException("Cancelled settlements cannot be rejected");
+        }
+        if (settlement.getStatus() == SettlementStatus.REJECTED) {
+            throw new BadRequestException("Settlement is already rejected");
+        }
     }
 
     private User loadUser(UUID userId) {

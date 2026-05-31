@@ -702,3 +702,31 @@ API smoke test status:
 Remaining production note:
 
 - The in-memory rate limiter is suitable for a single backend instance. Use Redis or another shared limiter before horizontal scaling.
+
+## 16. Settlement Confirmation And Flexible Split Participants - 2026-06-01
+
+Backend changes:
+
+- Settlement creation now stores `PENDING_CONFIRMATION` instead of immediately completing payment.
+- Balance calculations continue to apply only `COMPLETED` settlements, so pending/rejected payments do not alter balances.
+- `PATCH /api/settlements/{settlementId}/complete` is receiver/group-owner confirmation, not payer self-completion.
+- `POST /api/settlements/{settlementId}/reject` marks a pending settlement `REJECTED`.
+- Activity log records `SETTLEMENT_CREATED`, `SETTLEMENT_CONFIRMED`, and `SETTLEMENT_REJECTED`.
+- Settlement status database constraints now allow `PENDING_CONFIRMATION` and `REJECTED` via `V10__settlement_confirmation_statuses.sql`.
+- Expense creation already supported explicit `splits`; tests now lock that behavior so selected participants are the only people included.
+
+Authorization and validation:
+
+- Payer can create settlements only for themselves.
+- Receiver or group owner can confirm/reject settlement requests.
+- Payer alone cannot complete or reject their own payment.
+- Expense split participants must be active group members.
+- Empty split lists, duplicate user IDs, and invalid custom totals are rejected.
+
+Verification:
+
+```powershell
+mvn clean test
+```
+
+Result: PASS. Tests run: 27, failures: 0, errors: 0, skipped: 0.

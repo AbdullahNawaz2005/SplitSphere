@@ -127,3 +127,25 @@ Result: `000`
 - The current rate limiter is in-memory. It is acceptable for one backend instance, but a shared limiter such as Redis should be used before horizontal scaling.
 - Swagger remains available in local/dev profiles for developer use. Do not run production with `local` or `dev` active profiles.
 - Full API smoke testing should be rerun after the backend is started with valid database and JWT environment variables.
+
+## 2026-06-01 Authorization Update
+
+Settlement confirmation:
+
+- Creating a settlement request is still restricted to the authenticated payer.
+- Settlement completion now means receiver confirmation. The payer cannot complete their own payment.
+- Receivers can reject pending settlement requests through `POST /api/settlements/{settlementId}/reject`.
+- Group owners may resolve settlement state through the same confirm/reject service authorization path.
+- Pending and rejected settlements do not affect balances because balance calculation includes only `COMPLETED`.
+
+Flexible expense splits:
+
+- Backend split validation requires at least one participant.
+- Duplicate split user IDs are rejected.
+- Every selected split user must be an active member of the expense group.
+- The backend does not assume all members and does not automatically include the payer.
+
+Verification:
+
+- `mvn clean test`: PASS, 27 tests run.
+- `npm run build`: PASS.

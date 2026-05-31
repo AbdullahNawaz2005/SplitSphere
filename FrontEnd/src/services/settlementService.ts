@@ -22,4 +22,9 @@ export const settlementService = {
     apiRequest<SettlementResponse>(`/api/settlements/${settlementId}/complete`, {
       method: 'PATCH',
     }),
+
+  reject: (settlementId: string) =>
+    apiRequest<SettlementResponse>(`/api/settlements/${settlementId}/reject`, {
+      method: 'POST',
+    }),
 }

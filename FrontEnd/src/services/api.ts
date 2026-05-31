@@ -128,7 +128,7 @@ export interface SettlementResponse {
   receiverId?: string
   receiverName?: string
   amount: number
-  status: 'PENDING' | 'COMPLETED' | string
+  status: 'PENDING' | 'PENDING_CONFIRMATION' | 'COMPLETED' | 'REJECTED' | string
   settledAt?: string | null
   createdAt?: string
 }

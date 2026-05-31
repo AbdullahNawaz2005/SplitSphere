@@ -5,6 +5,7 @@ import com.splitsphere.entity.ExpenseGroup;
 import com.splitsphere.entity.Settlement;
 import com.splitsphere.entity.User;
 import com.splitsphere.entity.enums.SettlementStatus;
+import com.splitsphere.exception.BadRequestException;
 import com.splitsphere.exception.ForbiddenException;
 import com.splitsphere.repository.SettlementRepository;
 import com.splitsphere.repository.UserRepository;
@@ -89,6 +90,7 @@ class SettlementServiceSecurityTest {
 
         assertThat(response.payerId()).isEqualTo(userA.getId());
         assertThat(response.receiverId()).isEqualTo(userB.getId());
+        assertThat(response.status()).isEqualTo(SettlementStatus.PENDING_CONFIRMATION.name());
     }
 
     @Test
@@ -136,6 +138,19 @@ class SettlementServiceSecurityTest {
     }
 
     @Test
+    void payerCannotRejectSettlementUnlessOwner() {
+        Settlement settlement = settlement(userA, userB);
+        when(currentUserService.getCurrentUser()).thenReturn(userA);
+        when(settlementRepository.findById(settlement.getId())).thenReturn(Optional.of(settlement));
+
+        assertThatThrownBy(() -> settlementService.rejectSettlement(settlement.getId()))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("receiver or group owner");
+
+        verify(settlementRepository, never()).save(any());
+    }
+
+    @Test
     void receiverCanCompleteSettlement() {
         Settlement settlement = settlement(userA, userB);
         when(currentUserService.getCurrentUser()).thenReturn(userB);
@@ -146,6 +161,34 @@ class SettlementServiceSecurityTest {
 
         assertThat(response.status()).isEqualTo(SettlementStatus.COMPLETED.name());
         assertThat(response.settledAt()).isNotNull();
+    }
+
+    @Test
+    void receiverCanRejectSettlement() {
+        Settlement settlement = settlement(userA, userB);
+        when(currentUserService.getCurrentUser()).thenReturn(userB);
+        when(settlementRepository.findById(settlement.getId())).thenReturn(Optional.of(settlement));
+        when(settlementRepository.save(any(Settlement.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = settlementService.rejectSettlement(settlement.getId());
+
+        assertThat(response.status()).isEqualTo(SettlementStatus.REJECTED.name());
+        assertThat(response.settledAt()).isNull();
+    }
+
+    @Test
+    void completedSettlementCannotBeRejected() {
+        Settlement settlement = settlement(userA, userB);
+        settlement.setStatus(SettlementStatus.COMPLETED);
+        settlement.setSettledAt(java.time.Instant.now());
+        when(currentUserService.getCurrentUser()).thenReturn(userB);
+        when(settlementRepository.findById(settlement.getId())).thenReturn(Optional.of(settlement));
+
+        assertThatThrownBy(() -> settlementService.rejectSettlement(settlement.getId()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Completed settlements cannot be rejected");
+
+        verify(settlementRepository, never()).save(any());
     }
 
     @Test
@@ -171,7 +214,7 @@ class SettlementServiceSecurityTest {
         settlement.setPayer(payer);
         settlement.setReceiver(receiver);
         settlement.setAmount(new BigDecimal("50.00"));
-        settlement.setStatus(SettlementStatus.PENDING);
+        settlement.setStatus(SettlementStatus.PENDING_CONFIRMATION);
         return settlement;
     }
 
