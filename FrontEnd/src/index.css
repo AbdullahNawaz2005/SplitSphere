@@ -164,26 +164,26 @@ html.dark .chip-orange {
 
 /* ── Glassmorphism Utilities ── */
 .glass {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0px 10px 30px rgba(30, 41, 59, 0.05);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(17, 28, 45, 0.08);
+  box-shadow: 0px 8px 22px rgba(30, 41, 59, 0.05);
 }
 
 .glass-strong {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0px 10px 30px rgba(30, 41, 59, 0.08);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(17, 28, 45, 0.08);
+  box-shadow: 0px 8px 24px rgba(30, 41, 59, 0.08);
 }
 
 .glass-subtle {
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(17, 28, 45, 0.06);
 }
 
 .glass-input {
@@ -266,9 +266,9 @@ html.dark .chip-orange {
 }
 
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0px 16px 40px rgba(30, 41, 59, 0.1);
-  border-color: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0px 12px 28px rgba(30, 41, 59, 0.08);
+  border-color: rgba(17, 28, 45, 0.12);
 }
 
 /* ── Gradient text ── */
@@ -376,6 +376,14 @@ html.dark .chip-orange {
 .btn-ghost:hover {
   background: rgba(0, 0, 0, 0.04);
   color: var(--color-on-surface);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-primary-container);
+  outline-offset: 2px;
 }
 
 /* ── Chip/Tag styles ── */

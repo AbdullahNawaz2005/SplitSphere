@@ -3,6 +3,8 @@ import React from 'react'
 interface AvatarProps {
   initials: string
   color: string
+  name?: string
+  imageUrl?: string | null
   size?: 'sm' | 'md' | 'lg' | 'xl'
   ring?: boolean
   className?: string
@@ -15,13 +17,19 @@ const sizeMap = {
   xl: 'w-16 h-16 text-lg',
 }
 
-const Avatar: React.FC<AvatarProps> = ({ initials, color, size = 'md', ring = false, className = '' }) => {
+const Avatar: React.FC<AvatarProps> = ({ initials, color, name, imageUrl, size = 'md', ring = false, className = '' }) => {
   const avatar = (
     <div
-      className={`${sizeMap[size]} rounded-full flex items-center justify-center font-bold text-white ${className}`}
+      className={`${sizeMap[size]} rounded-full flex items-center justify-center overflow-hidden font-bold text-white shadow-sm ${className}`}
       style={{ backgroundColor: color }}
+      title={name}
+      aria-label={name ?? initials}
     >
-      {initials}
+      {imageUrl ? (
+        <img src={imageUrl} alt={name ?? initials} className="h-full w-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   )
 
@@ -32,7 +40,7 @@ const Avatar: React.FC<AvatarProps> = ({ initials, color, size = 'md', ring = fa
   return avatar
 }
 
-export const AvatarStack: React.FC<{ users: { initials: string; color: string }[]; max?: number }> = ({
+export const AvatarStack: React.FC<{ users: { initials: string; color: string; name?: string; imageUrl?: string | null }[]; max?: number }> = ({
   users,
   max = 4,
 }) => {
@@ -42,8 +50,8 @@ export const AvatarStack: React.FC<{ users: { initials: string; color: string }[
   return (
     <div className="flex -space-x-2">
       {shown.map((user, i) => (
-        <div key={i} className="ring-2 ring-white rounded-full">
-          <Avatar initials={user.initials} color={user.color} size="sm" />
+        <div key={`${user.name ?? user.initials}-${i}`} className="ring-2 ring-white rounded-full" title={user.name}>
+          <Avatar initials={user.initials} color={user.color} name={user.name} imageUrl={user.imageUrl} size="sm" />
         </div>
       ))}
       {remaining > 0 && (

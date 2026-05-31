@@ -1,8 +1,34 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Tag, Users, Check, ChevronRight, ReceiptText } from 'lucide-react'
+import {
+  X,
+  Check,
+  ChevronRight,
+  Utensils,
+  ShoppingBasket,
+  BusFront,
+  Fuel,
+  Home,
+  Plug,
+  ShoppingBag,
+  Plane,
+  Film,
+  HeartPulse,
+  GraduationCap,
+  Repeat,
+  Gift,
+  Package,
+  Wrench,
+  Dumbbell,
+  PawPrint,
+  CalendarDays,
+  CircleEllipsis,
+  Search,
+} from 'lucide-react'
 import { useAppearance } from '../contexts/AppearanceContext'
-import { colorFor, initialsFor, money } from '../utils/display'
+import { useToast } from '../contexts/ToastContext'
+import { colorFor, formatCurrencyAmount, initialsFor, toBasePkrAmount } from '../utils/display'
+import { currencyOptions } from '../utils/preferences'
 
 interface AddExpenseModalProps {
   isOpen: boolean
@@ -30,6 +56,7 @@ export interface ModalCategory {
   name: string
   icon?: string | null
   color?: string | null
+  backendId?: string
 }
 
 export interface AddExpensePayload {
@@ -44,13 +71,48 @@ export interface AddExpensePayload {
 const steps = ['amount', 'category', 'people', 'summary'] as const
 type Step = typeof steps[number]
 
-const fallbackCategories: ModalCategory[] = [
-  { id: 'food', name: 'Food & Drink', icon: '🍽️', color: '#10b981' },
-  { id: 'housing', name: 'Housing', icon: '🏠', color: '#06b6d4' },
-  { id: 'transport', name: 'Transport', icon: '🚗', color: '#a855f7' },
-  { id: 'utilities', name: 'Utilities', icon: '📡', color: '#ef4444' },
-  { id: 'other', name: 'Other', icon: '🧾', color: '#6b7280' },
+const TITLE_MAX_LENGTH = 80
+
+const categoryCatalog = [
+  { id: 'food-dining', name: 'Food & Dining', Icon: Utensils, color: '#10b981' },
+  { id: 'groceries', name: 'Groceries', Icon: ShoppingBasket, color: '#22c55e' },
+  { id: 'transport', name: 'Transport', Icon: BusFront, color: '#06b6d4' },
+  { id: 'fuel', name: 'Fuel', Icon: Fuel, color: '#f59e0b' },
+  { id: 'rent', name: 'Rent', Icon: Home, color: '#8b5cf6' },
+  { id: 'utilities', name: 'Utilities', Icon: Plug, color: '#0ea5e9' },
+  { id: 'shopping', name: 'Shopping', Icon: ShoppingBag, color: '#ec4899' },
+  { id: 'travel', name: 'Travel', Icon: Plane, color: '#14b8a6' },
+  { id: 'entertainment', name: 'Entertainment', Icon: Film, color: '#a855f7' },
+  { id: 'medical', name: 'Medical', Icon: HeartPulse, color: '#ef4444' },
+  { id: 'education', name: 'Education', Icon: GraduationCap, color: '#6366f1' },
+  { id: 'subscriptions', name: 'Subscriptions', Icon: Repeat, color: '#0891b2' },
+  { id: 'gifts', name: 'Gifts', Icon: Gift, color: '#f43f5e' },
+  { id: 'home-supplies', name: 'Home Supplies', Icon: Package, color: '#84cc16' },
+  { id: 'maintenance', name: 'Maintenance', Icon: Wrench, color: '#64748b' },
+  { id: 'fitness', name: 'Fitness', Icon: Dumbbell, color: '#10b981' },
+  { id: 'pets', name: 'Pets', Icon: PawPrint, color: '#d97706' },
+  { id: 'events', name: 'Events', Icon: CalendarDays, color: '#7c3aed' },
+  { id: 'other', name: 'Other', Icon: CircleEllipsis, color: '#6b7280' },
 ]
+
+type ExpenseCategory = (typeof categoryCatalog)[number] & { backendId?: string }
+
+const backendCategoryAliases: Record<string, string[]> = {
+  'food-dining': ['food', 'food-drink', 'food-and-drink', 'utensils'],
+  groceries: ['shopping-cart'],
+  transport: ['car'],
+  rent: ['housing'],
+  utilities: ['bolt'],
+  shopping: ['shopping-bag'],
+  events: ['party-popper'],
+  other: ['circle'],
+}
+
+const normalizeCategoryKey = (value?: string | null) =>
+  (value ?? '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '')
 
 const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   isOpen,
@@ -68,12 +130,38 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   const [amount, setAmount] = useState('')
   const [title, setTitle] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
+  const [categorySearch, setCategorySearch] = useState('')
   const [selectedPeople, setSelectedPeople] = useState<string[]>([])
   const [selectedGroupId, setSelectedGroupId] = useState(defaultGroupId ?? groups[0]?.id ?? '')
-  useAppearance()
+  const { currency } = useAppearance()
+  const { showToast } = useToast()
 
   const stepIndex = steps.indexOf(currentStep)
-  const visibleCategories = categories?.length ? categories : fallbackCategories
+  const visibleCategories = useMemo<ExpenseCategory[]>(() => {
+    const backendByKey = new Map<string, ModalCategory>()
+    categories?.forEach((category) => {
+      backendByKey.set(normalizeCategoryKey(category.id), category)
+      backendByKey.set(normalizeCategoryKey(category.name), category)
+    })
+
+    return categoryCatalog.map((category) => {
+      const aliasMatch = backendCategoryAliases[category.id]
+        ?.map((alias) => backendByKey.get(normalizeCategoryKey(alias)))
+        .find(Boolean)
+      const backendCategory =
+        backendByKey.get(normalizeCategoryKey(category.id)) ??
+        backendByKey.get(normalizeCategoryKey(category.name)) ??
+        aliasMatch
+      return { ...category, backendId: backendCategory?.id }
+    })
+  }, [categories])
+  const filteredCategories = useMemo(
+    () =>
+      visibleCategories.filter((category) =>
+        category.name.toLowerCase().includes(categorySearch.trim().toLowerCase())
+      ),
+    [categorySearch, visibleCategories]
+  )
   const activePayerId = currentUserId ?? members[0]?.id ?? ''
   const visibleMembers = useMemo(
     () => members.filter((member) => member.id !== activePayerId),
@@ -91,12 +179,48 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setAmount('')
     setTitle('')
     setSelectedCategory('')
+    setCategorySearch('')
     setSelectedPeople([])
     setSelectedGroupId(defaultGroupId ?? groups[0]?.id ?? '')
     onClose()
   }
 
+  const amountValue = Number(amount)
+  const validAmount = Number.isFinite(amountValue) && amountValue > 0
+  const validTitle = title.trim().length > 0 && title.trim().length <= TITLE_MAX_LENGTH
+  const selectedCategoryData = visibleCategories.find((c) => c.id === selectedCategory)
+  const canContinueFromAmount = Boolean(selectedGroupId && activePayerId && validAmount && validTitle)
+
+  const validateCurrentStep = () => {
+    if (currentStep === 'amount') {
+      if (!selectedGroupId) {
+        showToast('Choose a group before continuing.', 'error')
+        return false
+      }
+      if (!validAmount) {
+        showToast('Enter an amount greater than 0.', 'error')
+        return false
+      }
+      if (!title.trim()) {
+        showToast('Add a short description for the expense.', 'error')
+        return false
+      }
+      if (title.trim().length > TITLE_MAX_LENGTH) {
+        showToast(`Description must be ${TITLE_MAX_LENGTH} characters or fewer.`, 'error')
+        return false
+      }
+    }
+
+    if (currentStep === 'category' && !selectedCategoryData) {
+      showToast('Choose a category before continuing.', 'error')
+      return false
+    }
+
+    return true
+  }
+
   const nextStep = () => {
+    if (!validateCurrentStep()) return
     const idx = steps.indexOf(currentStep)
     if (idx < steps.length - 1) setCurrentStep(steps[idx + 1])
   }
@@ -112,22 +236,37 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     )
   }
 
-  const selectedCategoryData = visibleCategories.find((c) => c.id === selectedCategory)
-  const splitAmount = parseFloat(amount || '0') / (selectedPeople.length + 1)
+  const splitAmount = (validAmount ? amountValue : 0) / (selectedPeople.length + 1)
   const selectedPeopleData = selectedPeople
     .map((id) => members.find((member) => member.id === id))
     .filter(Boolean) as ModalUser[]
 
   const submitExpense = async () => {
-    const parsedAmount = Number(amount)
-    if (!selectedGroupId || !activePayerId || !title.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) return
-    const backendCategory = categories?.some((category) => category.id === selectedCategory)
+    if (!selectedGroupId || !activePayerId) {
+      showToast('Choose a group before submitting.', 'error')
+      return
+    }
+    if (!validAmount) {
+      showToast('Enter an amount greater than 0.', 'error')
+      return
+    }
+    if (!validTitle) {
+      showToast('Add a short description for the expense.', 'error')
+      return
+    }
+    if (!selectedCategoryData) {
+      showToast('Choose a category before submitting.', 'error')
+      return
+    }
+    // Temporary input conversion: users enter the selected display currency,
+    // while the current backend contract stores all expense amounts as PKR.
+    const basePkrAmount = toBasePkrAmount(amountValue, currency)
     await onSubmit?.({
       groupId: selectedGroupId,
       payerId: activePayerId,
       title: title.trim(),
-      amount: parsedAmount,
-      categoryId: backendCategory ? selectedCategory : undefined,
+      amount: Number(basePkrAmount.toFixed(2)),
+      categoryId: selectedCategoryData.backendId,
       splitUserIds: [activePayerId, ...selectedPeople],
     })
     resetAndClose()
@@ -204,16 +343,21 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                   >
                     <div>
                       <h3 className="text-2xl font-bold tracking-tight">How much was it?</h3>
-                      <p className="text-sm text-on-surface-variant mt-1">Enter the total bill amount</p>
+                      <p className="text-sm text-on-surface-variant mt-1">Enter the total bill amount in {currency}</p>
                     </div>
                     <div className="relative">
-                      <ReceiptText className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-primary-container" />
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-primary-container">
+                        {currencyOptions[currency].symbol}
+                      </span>
                       <input
                         type="number"
-                        placeholder="Rs. 0.00"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        placeholder={formatCurrencyAmount(0, currency)}
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="w-full pl-14 pr-4 py-4 text-3xl font-bold glass-input rounded-2xl outline-none text-on-surface placeholder:text-outline-variant"
+                        className="w-full pl-16 pr-4 py-4 text-3xl font-bold glass-input rounded-2xl outline-none text-on-surface placeholder:text-outline-variant"
                         autoFocus
                       />
                     </div>
@@ -221,11 +365,13 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                       <label className="text-xs font-medium uppercase tracking-widest text-on-surface-variant mb-2 block">Description</label>
                       <input
                         type="text"
-                        placeholder="e.g. Group dinner"
+                        placeholder="e.g. Dinner at Monal"
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX_LENGTH))}
+                        maxLength={TITLE_MAX_LENGTH}
                         className="w-full px-4 py-3 glass-input rounded-xl outline-none text-on-surface placeholder:text-outline-variant text-sm"
                       />
+                      <p className="mt-1 text-[11px] text-on-surface-variant">{title.length}/{TITLE_MAX_LENGTH}</p>
                     </div>
                     {groups.length > 1 && !defaultGroupId && (
                       <div>
@@ -257,24 +403,47 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                       <h3 className="text-2xl font-bold tracking-tight">What's it for?</h3>
                       <p className="text-sm text-on-surface-variant mt-1">Select a category for better tracking</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {visibleCategories.map((cat) => (
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                      <input
+                        type="text"
+                        value={categorySearch}
+                        onChange={(event) => setCategorySearch(event.target.value)}
+                        placeholder="Search categories..."
+                        className="w-full pl-10 pr-4 py-3 glass-input rounded-xl outline-none text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1">
+                      {filteredCategories.map((cat) => {
+                        const CategoryIcon = cat.Icon
+                        return (
                         <button
                           key={cat.id}
                           onClick={() => setSelectedCategory(cat.id)}
-                          className={`flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 ${
+                          className={`relative min-h-[88px] flex flex-col items-center justify-center gap-2 p-3 rounded-2xl text-center transition-all duration-300 ${
                             selectedCategory === cat.id
                               ? 'glass-strong ring-2 ring-primary-container shadow-lg'
                               : 'glass-subtle hover:bg-white/40'
                           }`}
                         >
-                          <span className="text-2xl">{cat.icon ?? <Tag className="w-5 h-5" />}</span>
-                          <span className="text-sm font-medium">{cat.name}</span>
+                          <span
+                            className="w-9 h-9 rounded-xl flex items-center justify-center"
+                            style={{ backgroundColor: `${cat.color}1f`, color: cat.color }}
+                          >
+                            <CategoryIcon className="w-5 h-5" />
+                          </span>
+                          <span className="text-xs font-semibold leading-tight">{cat.name}</span>
                           {selectedCategory === cat.id && (
-                            <Check className="w-4 h-4 text-primary-container ml-auto" />
+                            <Check className="absolute w-4 h-4 text-primary-container top-2 right-2" />
                           )}
                         </button>
-                      ))}
+                        )
+                      })}
+                      {filteredCategories.length === 0 && (
+                        <div className="col-span-2 sm:col-span-3 glass-subtle rounded-2xl p-5 text-center text-sm text-on-surface-variant">
+                          No matching category. Use Other for custom expenses.
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -349,7 +518,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                             {selectedCategoryData?.name || 'Uncategorized'} • Today
                           </p>
                         </div>
-                        <p className="text-2xl font-bold text-gradient">{money(parseFloat(amount || '0'))}</p>
+                        <p className="text-2xl font-bold text-gradient">{formatCurrencyAmount(validAmount ? amountValue : 0, currency)}</p>
                       </div>
                       <div className="h-px bg-on-surface/5" />
                       <div className="space-y-3">
@@ -360,7 +529,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                               <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white text-xs font-bold">{initialsFor(currentUserName)}</div>
                               <span className="text-sm font-medium">{currentUserName}</span>
                             </div>
-                            <span className="text-sm font-bold text-primary-container">{money(splitAmount)}</span>
+                            <span className="text-sm font-bold text-primary-container">{formatCurrencyAmount(splitAmount, currency)}</span>
                           </div>
                           {selectedPeopleData.map((user) => (
                               <div key={user.id} className="flex items-center justify-between">
@@ -370,7 +539,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                                   </div>
                                   <span className="text-sm font-medium">{user.name}</span>
                                 </div>
-                                <span className="text-sm font-bold">{money(splitAmount)}</span>
+                                <span className="text-sm font-bold">{formatCurrencyAmount(splitAmount, currency)}</span>
                               </div>
                           ))}
                         </div>
@@ -391,7 +560,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
               </button>
               <button
                 onClick={stepIndex === steps.length - 1 ? submitExpense : nextStep}
-                disabled={isSubmitting || (stepIndex === steps.length - 1 && (!selectedGroupId || !activePayerId || !title.trim() || Number(amount) <= 0))}
+                disabled={isSubmitting || (stepIndex === steps.length - 1 && (!canContinueFromAmount || !selectedCategoryData))}
                 className="btn-primary flex items-center gap-2"
               >
                 {stepIndex === steps.length - 1 ? (isSubmitting ? 'Splitting...' : 'Split Expense') : 'Continue'}

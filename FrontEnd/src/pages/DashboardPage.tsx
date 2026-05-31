@@ -1,17 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Plus, TrendingUp, ChevronRight } from 'lucide-react'
+import { Plus, TrendingUp, ChevronRight, ReceiptText, Users } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { AvatarStack } from '../components/Avatar'
 import AddExpenseModal, { AddExpensePayload, ModalUser } from '../components/AddExpenseModal'
 import { useAppearance } from '../contexts/AppearanceContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
-import { CategoryResponse, ExpenseResponse, GroupResponse } from '../services/api'
+import { ActivityLogResponse, CategoryResponse, ExpenseResponse, GroupResponse } from '../services/api'
 import { expenseService } from '../services/expenseService'
 import { groupService } from '../services/groupService'
-import { colorFor, iconFor, initialsFor, money, shortDate } from '../utils/display'
+import { categoryLabel, colorFor, iconFor, initialsFor, money, relativeTime, shortDate } from '../utils/display'
 
 const stagger = {
   hidden: { opacity: 0 },
@@ -33,6 +33,7 @@ const DashboardPage: React.FC = () => {
   const [expenseModalOpen, setExpenseModalOpen] = useState(false)
   const [groups, setGroups] = useState<GroupResponse[]>([])
   const [expenses, setExpenses] = useState<ExpenseResponse[]>([])
+  const [activities, setActivities] = useState<ActivityLogResponse[]>([])
   const [members, setMembers] = useState<Record<string, ModalUser[]>>({})
   const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [balances, setBalances] = useState<Record<string, number>>({})
@@ -49,15 +50,22 @@ const DashboardPage: React.FC = () => {
       setGroups(groupList)
       const results = await Promise.all(
         groupList.map(async (group) => {
-          const [expensePage, balanceResponse, groupMembers] = await Promise.all([
+          const [expensePage, balanceResponse, groupMembers, activityPage] = await Promise.all([
             expenseService.listByGroup(group.id).catch(() => null),
             groupService.balances(group.id).catch(() => null),
             groupService.members(group.id).catch(() => []),
+            groupService.activity(group.id).catch(() => null),
           ])
-          return { group, expensePage, balanceResponse, groupMembers }
+          return { group, expensePage, balanceResponse, groupMembers, activityPage }
         })
       )
       setExpenses(results.flatMap((result) => result.expensePage?.content ?? []))
+      setActivities(
+        results
+          .flatMap((result) => result.activityPage?.content ?? [])
+          .sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''))
+          .slice(0, 5)
+      )
       setBalances(
         Object.fromEntries(
           results.map((result) => [
@@ -126,22 +134,26 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-5">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <p className="text-sm text-on-surface-variant">Good evening,</p>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{user?.name ?? 'SplitSphere'}</h1>
         </motion.div>
 
-        <div className="grid md:grid-cols-5 gap-6">
-          <GlassCard className="md:col-span-2" hover={false} delay={0.1}>
-            <p className="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Total Combined Balance</p>
-            <div className="flex items-end gap-3 mb-4">
-              <h2 className="text-4xl font-bold tracking-tight text-gradient">{money(totalBalance)}</h2>
-              <span className="chip chip-emerald mb-1">
+        <div className="grid lg:grid-cols-4 gap-3">
+          <GlassCard className="lg:col-span-2" hover={false} delay={0.1}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Net Balance</p>
+                <h2 className={`text-4xl font-bold tracking-tight ${totalBalance >= 0 ? 'text-gradient' : 'text-error'}`}>
+                  {totalBalance >= 0 ? '+' : '-'}{money(Math.abs(totalBalance))}
+                </h2>
+              </div>
+              <span className="chip chip-emerald">
                 <TrendingUp className="w-3 h-3" /> Live
               </span>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 mt-5">
               <div className="glass-subtle rounded-xl p-3">
                 <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">You're Owed</p>
                 <p className="text-lg font-bold text-primary-container">{money(youAreOwed)}</p>
@@ -153,28 +165,34 @@ const DashboardPage: React.FC = () => {
             </div>
           </GlassCard>
 
-          <GlassCard className="md:col-span-3" hover={false} delay={0.2}>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold tracking-tight">Insights</h3>
-                <p className="text-xs text-on-surface-variant">Live backend data only</p>
+          <GlassCard hover={false} delay={0.15}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary-container" />
               </div>
-              <Link to="/insights" className="chip chip-cyan cursor-pointer hover:bg-cyan-100/20 transition-colors">
-                View All <ChevronRight className="w-3 h-3" />
-              </Link>
-            </div>
-            <div className="h-48 glass-subtle rounded-2xl flex items-center justify-center px-6 text-center">
               <div>
-                <p className="text-sm font-semibold">
-                  {expenses.length === 0 ? 'No expenses yet. Add your first expense to see insights.' : 'Open Insights to review live category totals from your groups.'}
-                </p>
-                <p className="text-xs text-on-surface-variant mt-2">Fake weekly charts have been removed.</p>
+                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">Active Groups</p>
+                <p className="text-2xl font-bold">{groups.length}</p>
               </div>
             </div>
+            <p className="text-xs text-on-surface-variant mt-3">Groups with live balances and expenses.</p>
+          </GlassCard>
+
+          <GlassCard hover={false} delay={0.2}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-secondary-container/10 flex items-center justify-center">
+                <ReceiptText className="w-5 h-5 text-secondary-container" />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">Expenses</p>
+                <p className="text-2xl font-bold">{expenses.length}</p>
+              </div>
+            </div>
+            <p className="text-xs text-on-surface-variant mt-3">Recent expenses across your groups.</p>
           </GlassCard>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-3 gap-5">
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold tracking-tight">Active Groups</h3>
@@ -198,14 +216,17 @@ const DashboardPage: React.FC = () => {
                         <p className={`text-sm font-bold ${(balances[group.id] ?? 0) >= 0 ? 'text-primary-container' : 'text-error'}`}>
                           {(balances[group.id] ?? 0) >= 0 ? '+' : ''}{money(Math.abs(balances[group.id] ?? 0))}
                         </p>
-                        <AvatarStack users={(members[group.id] ?? []).map((member) => ({ initials: member.initials ?? initialsFor(member.name), color: member.color ?? colorFor(member.id) }))} max={3} />
+                        <AvatarStack users={(members[group.id] ?? []).map((member) => ({ initials: member.initials ?? initialsFor(member.name), color: member.color ?? colorFor(member.id), name: member.name }))} max={3} />
                       </div>
                       <ChevronRight className="w-4 h-4 text-outline-variant" />
                     </div>
                   </Link>
                 </motion.div>
               )) : (
-                <div className="glass rounded-2xl p-6 text-center text-sm text-on-surface-variant">Create or join a group to start splitting.</div>
+                <div className="glass rounded-2xl p-6 text-center">
+                  <p className="text-sm font-semibold">No groups yet</p>
+                  <p className="text-xs text-on-surface-variant mt-1">Create or join a group to start splitting.</p>
+                </div>
               )}
             </motion.div>
           </div>
@@ -218,15 +239,16 @@ const DashboardPage: React.FC = () => {
             <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-3">
               {recentExpenses.length > 0 ? recentExpenses.map((expense) => {
                 const group = groups.find((item) => item.id === expense.groupId)
+                const displayCategory = categoryLabel(expense.categoryName)
                 return (
                   <motion.div key={expense.id} variants={fadeUp}>
                     <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: 'rgba(16,185,129,0.1)' }}>
-                        {iconFor(expense.categoryName ?? expense.description)}
+                        {iconFor(displayCategory ?? expense.description)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{expense.description ?? expense.title ?? 'Expense'}</p>
-                        <p className="text-xs text-on-surface-variant">{expense.categoryName ?? 'Shared'} - {group?.name ?? 'Group'} - {shortDate(expense.expenseDate ?? expense.createdAt)}</p>
+                        <p className="text-xs text-on-surface-variant">{displayCategory} - {group?.name ?? 'Group'} - {shortDate(expense.expenseDate ?? expense.createdAt)}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold">{money(expense.amount)}</p>
@@ -236,7 +258,32 @@ const DashboardPage: React.FC = () => {
                   </motion.div>
                 )
               }) : (
-                <div className="glass rounded-2xl p-6 text-center text-sm text-on-surface-variant">No expenses yet. Add your first expense to see insights.</div>
+                <div className="glass rounded-2xl p-6 text-center">
+                  <p className="text-sm font-semibold">No expenses yet</p>
+                  <p className="text-xs text-on-surface-variant mt-1">Add your first expense to see it here.</p>
+                </div>
+              )}
+            </motion.div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold tracking-tight">Recent Activity</h3>
+              <Link to="/activity" className="text-xs text-primary font-semibold hover:underline">View Timeline</Link>
+            </div>
+            <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-3">
+              {activities.length > 0 ? activities.map((activity) => (
+                <motion.div key={activity.id} variants={fadeUp}>
+                  <div className="glass rounded-2xl p-4 card-hover">
+                    <p className="text-sm font-semibold truncate">{activity.description ?? activity.action ?? 'Activity'}</p>
+                    <p className="text-xs text-on-surface-variant mt-1">{activity.userName ?? 'Someone'} · {relativeTime(activity.createdAt)}</p>
+                  </div>
+                </motion.div>
+              )) : (
+                <div className="glass rounded-2xl p-6 text-center">
+                  <p className="text-sm font-semibold">No recent activity</p>
+                  <p className="text-xs text-on-surface-variant mt-1">Group updates will appear here.</p>
+                </div>
               )}
             </motion.div>
           </div>

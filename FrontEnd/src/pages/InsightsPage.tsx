@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import GlassCard from '../components/GlassCard'
@@ -6,7 +7,7 @@ import { useAppearance } from '../contexts/AppearanceContext'
 import { useToast } from '../contexts/ToastContext'
 import { GroupAnalyticsResponse, GroupResponse } from '../services/api'
 import { groupService } from '../services/groupService'
-import { money } from '../utils/display'
+import { categoryLabel, money } from '../utils/display'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -72,7 +73,7 @@ const InsightsPage: React.FC = () => {
     return Object.entries(analytics?.spendingByCategory ?? {})
       .filter(([, value]) => value > 0)
       .map(([name, value], index) => ({
-        name,
+        name: categoryLabel(name, 'Other'),
         value,
         color: chartColors[index % chartColors.length],
       }))
@@ -86,7 +87,7 @@ const InsightsPage: React.FC = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Spending Insights</h1>
-          <p className="text-sm text-on-surface-variant mt-1">Live analytics from your groups.</p>
+          <p className="text-sm text-on-surface-variant mt-1">See where your group spends the most money.</p>
         </motion.div>
 
         {groups.length > 0 && (
@@ -102,8 +103,9 @@ const InsightsPage: React.FC = () => {
         ) : !hasExpenses ? (
           <GlassCard hover={false}>
             <div className="py-12 text-center">
-              <p className="text-base font-semibold">No expenses yet. Add your first expense to see insights.</p>
-              <p className="text-sm text-on-surface-variant mt-2">Monthly, weekly, and fallback demo charts have been removed.</p>
+              <p className="text-base font-semibold">No expense data available yet.</p>
+              <p className="text-sm text-on-surface-variant mt-2">Add expenses to unlock spending insights.</p>
+              <Link to="/groups" className="btn-primary inline-flex mt-5 text-sm">Go to Groups</Link>
             </div>
           </GlassCard>
         ) : (

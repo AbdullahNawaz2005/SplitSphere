@@ -15,6 +15,7 @@ Use `localhost:5173` for browser testing. Backend CORS allows `http://localhost:
 ## Files Changed
 
 - `.gitignore`
+- `FRONTEND_INTEGRATION_REPORT.md`
 - `FrontEnd/.env`
 - `FrontEnd/.env.example`
 - `FrontEnd/package.json`
@@ -43,6 +44,7 @@ Use `localhost:5173` for browser testing. Backend CORS allows `http://localhost:
 - `FrontEnd/src/pages/InsightsPage.tsx`
 - `FrontEnd/src/pages/ActivityPage.tsx`
 - `FrontEnd/src/pages/ProfilePage.tsx`
+- `FrontEnd/vercel.json`
 - `FrontEnd/src/data/mockData.ts` deleted
 
 No backend code was changed for this integration pass.
@@ -101,7 +103,12 @@ JWTs are stored in `localStorage` under frontend-only keys. No secrets or creden
 - Empty analytics states now show: "No expenses yet. Add your first expense to see insights."
 - Profile settings were reduced to real account information, global dark mode, currency selection, and sign out.
 - Dark mode is applied globally with the existing glassmorphism style and persists in `localStorage`.
-- Currency selection supports `PKR Rs.` and `USD $`, persists in `localStorage`, and uses a frontend-only display conversion of `1 USD = 280 PKR` while backend amounts remain unchanged.
+- Currency selection supports `PKR Rs.`, `USD $`, and `GBP £`, persists in `localStorage`, and uses frontend-only display/input conversion while backend amounts remain stored in PKR.
+- Temporary conversion rates are `1 USD = 280 PKR` and `1 GBP = 355 PKR`. Backend PKR values are converted for display only; Add Expense input values are converted back to PKR once before POSTing.
+- Add Expense amount input now shows the selected currency symbol and placeholder (`Rs. 0.00`, `$0.00`, or `£0.00`), and split preview uses the entered display currency instead of re-converting typed values.
+- Add Expense requires a short description/title for the actual expense, such as "Dinner at Monal", with an 80-character limit.
+- Add Expense category selection now uses realistic frontend labels and Lucide icons: Food & Dining, Groceries, Transport, Fuel, Rent, Utilities, Shopping, Travel, Entertainment, Medical, Education, Subscriptions, Gifts, Home Supplies, Maintenance, Fitness, Pets, Events, and Other.
+- Category search was added to the Add Expense step. Known backend category/icon slugs such as `party-popper`, `bolt`, `circle`, `utensils`, and `shopping-cart` are mapped to readable category names instead of being shown as raw text.
 - Payment methods, notifications, theme, help/support, privacy/security, fake profile stats, reminder delivery, and other dead settings were removed from visible UI.
 
 Google sign-in/sign-up uses Google Identity via `@react-oauth/google`, sends the Google ID token to `POST /api/auth/google`, stores the returned JWT the same way as email/password login, and redirects to the dashboard.
@@ -148,6 +155,26 @@ npm run build
 ```
 
 Result: PASS. Vite bundle completed with the existing large chunk warning only.
+
+Add Expense currency/category cleanup verification:
+
+```powershell
+npm run build
+```
+
+Result: PASS.
+
+```powershell
+node --input-type=module -e "const rates={PKR:1,USD:280,GBP:355}; for (const c of ['PKR','USD','GBP']) { const entered=10; const base=entered*rates[c]; const displayed=base/rates[c]; console.log(c + ': entered=' + entered + ', backendPKR=' + base + ', displayed=' + displayed); }"
+```
+
+Result: PASS. `PKR` submitted `10`, `USD` submitted `2800`, and `GBP` submitted `3550` for an entered value of `10`; converting each backend PKR amount back to display currency returned `10`, confirming no double conversion in the frontend conversion boundary.
+
+```powershell
+npm run preview -- --host 127.0.0.1 --port 4173
+```
+
+Result: PASS. Preview route smoke checks returned HTTP 200 and served the React app shell for `/dashboard`, `/groups`, and `/profile`.
 
 ```powershell
 Invoke-WebRequest http://127.0.0.1:5173

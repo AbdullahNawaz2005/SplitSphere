@@ -89,7 +89,7 @@ const ProfilePage: React.FC = () => {
                 <ShieldCheck className="w-4 h-4" />
                 <p className="text-[10px] uppercase tracking-widest">Login Method</p>
               </div>
-              <p className="text-sm font-semibold">Not exposed by backend</p>
+              <p className="text-sm font-semibold">Managed by backend session</p>
             </div>
           </div>
         </GlassCard>

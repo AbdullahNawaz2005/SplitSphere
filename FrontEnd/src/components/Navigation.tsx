@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Home, Users, Receipt, User, Plus, TrendingUp, Zap, Menu, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { colorFor, initialsFor } from '../utils/display'
+import Avatar from './Avatar'
 
 const navItems = [
   { path: '/dashboard', label: 'Home', icon: Home },
@@ -77,10 +78,8 @@ export const TopNav: React.FC = () => {
             <TrendingUp className="w-4 h-4" />
             Insights
           </Link>
-          <Link to="/profile" className="avatar-ring">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: color }}>
-              {initials}
-            </div>
+          <Link to="/profile" className="avatar-ring" title={user?.name ?? 'Profile'}>
+            <Avatar initials={initials} color={color} name={user?.name} size="sm" className="!w-8 !h-8" />
           </Link>
         </div>
 

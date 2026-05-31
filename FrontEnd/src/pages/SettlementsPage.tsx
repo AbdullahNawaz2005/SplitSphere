@@ -40,6 +40,13 @@ interface SettlementItem {
   persisted?: boolean
 }
 
+interface BalanceItem {
+  id: string
+  groupName: string
+  userName: string
+  amount: number
+}
+
 const fromSuggestion = (suggestion: SettlementSuggestionResponse, groupId: string, groupName: string): SettlementItem => ({
   id: `${groupId}-${suggestion.fromUserId}-${suggestion.toUserId}`,
   groupId,
@@ -69,6 +76,7 @@ const fromSettlement = (settlement: SettlementResponse, groupName: string): Sett
 
 const SettlementsPage: React.FC = () => {
   const [settlements, setSettlements] = useState<SettlementItem[]>([])
+  const [balances, setBalances] = useState<BalanceItem[]>([])
   const [loading, setLoading] = useState(true)
   const [settlingId, setSettlingId] = useState<string | null>(null)
   const { showToast } = useToast()
@@ -80,17 +88,29 @@ const SettlementsPage: React.FC = () => {
       const groups = await groupService.list()
       const results = await Promise.all(
         groups.map(async (group) => {
-          const [suggestions, settlementPage] = await Promise.all([
+          const [suggestions, settlementPage, balance] = await Promise.all([
             groupService.settlementSuggestions(group.id).catch(() => []),
             settlementService.listByGroup(group.id).catch(() => null),
+            groupService.balances(group.id).catch(() => null),
           ])
-          return [
-            ...suggestions.map((suggestion) => fromSuggestion(suggestion, group.id, group.name)),
-            ...(settlementPage?.content ?? []).map((settlement) => fromSettlement(settlement, group.name)),
-          ]
+          return {
+            settlements: [
+              ...suggestions.map((suggestion) => fromSuggestion(suggestion, group.id, group.name)),
+              ...(settlementPage?.content ?? []).map((settlement) => fromSettlement(settlement, group.name)),
+            ],
+            balances: (balance?.balances ?? [])
+              .filter((item) => Math.abs(item.netBalance) > 0)
+              .map((item) => ({
+                id: `${group.id}-${item.userId}`,
+                groupName: group.name,
+                userName: item.userName,
+                amount: item.netBalance,
+              })),
+          }
         })
       )
-      setSettlements(results.flat())
+      setSettlements(results.flatMap((result) => result.settlements))
+      setBalances(results.flatMap((result) => result.balances))
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Unable to load settlements.', 'error')
     } finally {
@@ -103,6 +123,7 @@ const SettlementsPage: React.FC = () => {
   }, [])
 
   const pending = settlements.filter((settlement) => settlement.status === 'PENDING' || settlement.status === 'SUGGESTED')
+  const history = settlements.filter((settlement) => settlement.status === 'COMPLETED')
   const totalSuggested = pending.reduce((sum, settlement) => sum + settlement.amount, 0)
   const stepsRemoved = pending.length
 
@@ -129,11 +150,11 @@ const SettlementsPage: React.FC = () => {
 
   return (
     <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-5">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Smart Settlements</h1>
           <p className="text-sm text-on-surface-variant mt-1">
-            Record optimized settlements from your live group balances.
+            Settle balances quickly and fairly using live group balances.
           </p>
         </motion.div>
 
@@ -176,12 +197,47 @@ const SettlementsPage: React.FC = () => {
           </GlassCard>
         </div>
 
-        <div>
-          <h3 className="text-lg font-bold tracking-tight mb-4">Pending Settlements</h3>
+        <div className="grid lg:grid-cols-5 gap-5">
+          <GlassCard hover={false} delay={0.25} className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold tracking-tight">Current Balances</h3>
+                <p className="text-xs text-on-surface-variant">Who is currently ahead or behind.</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {loading ? (
+                <p className="text-sm text-on-surface-variant">Loading balances...</p>
+              ) : balances.length > 0 ? balances.slice(0, 8).map((balance) => (
+                <div key={balance.id} className="flex items-center justify-between gap-3 glass-subtle rounded-xl p-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{balance.userName}</p>
+                    <p className="text-xs text-on-surface-variant truncate">{balance.groupName}</p>
+                  </div>
+                  <p className={`text-sm font-bold ${balance.amount >= 0 ? 'text-primary-container' : 'text-error'}`}>
+                    {balance.amount >= 0 ? '+' : '-'}{money(Math.abs(balance.amount))}
+                  </p>
+                </div>
+              )) : (
+                <div className="glass-subtle rounded-xl p-5 text-center">
+                  <p className="text-sm font-semibold">All balances are clear</p>
+                  <p className="text-xs text-on-surface-variant mt-1">No outstanding group balances right now.</p>
+                </div>
+              )}
+            </div>
+          </GlassCard>
+
+          <div className="lg:col-span-3">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold tracking-tight">Recommended Settlement Plan</h3>
+                <p className="text-xs text-on-surface-variant">Optimized steps from your backend suggestions.</p>
+              </div>
+            </div>
           <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-3">
             {loading ? (
               <div className="glass rounded-2xl p-8 text-center text-sm text-on-surface-variant">Loading settlements...</div>
-            ) : settlements.length > 0 ? settlements.map((settlement) => {
+            ) : pending.length > 0 ? pending.map((settlement) => {
               const config = statusConfig[settlement.status]
               const StatusIcon = config.icon
               return (
@@ -217,9 +273,34 @@ const SettlementsPage: React.FC = () => {
                 </motion.div>
               )
             }) : (
-              <div className="glass rounded-2xl p-8 text-center text-sm text-on-surface-variant">No settlement suggestions yet.</div>
+              <div className="glass rounded-2xl p-8 text-center">
+                <p className="text-base font-semibold">No settlement suggestions yet</p>
+                <p className="text-sm text-on-surface-variant mt-2">Add expenses to generate optimized settlement steps.</p>
+              </div>
             )}
           </motion.div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-bold tracking-tight mb-4">Settlement History</h3>
+          <div className="space-y-3">
+            {history.length > 0 ? history.map((settlement) => (
+              <div key={settlement.id} className="glass rounded-2xl p-4 flex items-center gap-4">
+                <Avatar initials={initialsFor(settlement.fromUserName)} color={colorFor(settlement.fromUserId)} name={settlement.fromUserName} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{settlement.fromUserName} paid {settlement.toUserName}</p>
+                  <p className="text-xs text-on-surface-variant truncate">{settlement.groupName}</p>
+                </div>
+                <p className="text-sm font-bold">{money(settlement.amount)}</p>
+              </div>
+            )) : (
+              <div className="glass rounded-2xl p-6 text-center">
+                <p className="text-sm font-semibold">No settlement history yet</p>
+                <p className="text-xs text-on-surface-variant mt-1">Completed settlements will appear here.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

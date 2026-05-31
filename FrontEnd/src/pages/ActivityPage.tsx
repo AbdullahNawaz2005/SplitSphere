@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Avatar from '../components/Avatar'
 import { ActivityLogResponse } from '../services/api'
 import { groupService } from '../services/groupService'
-import { colorFor, initialsFor, shortDate } from '../utils/display'
+import { colorFor, dateGroupLabel, initialsFor, relativeTime } from '../utils/display'
 import { useToast } from '../contexts/ToastContext'
 
 const stagger = {
@@ -28,6 +29,13 @@ const iconForAction = (action?: string) => {
   if (value.includes('SETTLEMENT')) return '✓'
   if (value.includes('GROUP')) return '+'
   return '•'
+}
+
+const titleForActivity = (activity: ActivityLogResponse) => {
+  if (activity.description) return activity.description
+  const actor = activity.userName ?? 'Someone'
+  const action = activity.action ?? 'updated this group'
+  return `${actor} ${action.toLowerCase().replace(/_/g, ' ')}`
 }
 
 const ActivityPage: React.FC = () => {
@@ -58,12 +66,20 @@ const ActivityPage: React.FC = () => {
     return sorted.filter((activity) => (activity.action ?? '').toLowerCase().includes(activeFilter.slice(0, -1).toLowerCase()))
   }, [activeFilter, activities])
 
+  const grouped = useMemo(() => {
+    return filtered.reduce<Record<string, ActivityLogResponse[]>>((groups, activity) => {
+      const label = dateGroupLabel(activity.createdAt)
+      groups[label] = [...(groups[label] ?? []), activity]
+      return groups
+    }, {})
+  }, [filtered])
+
   return (
     <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-5">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Activity</h1>
-          <p className="text-sm text-on-surface-variant mt-1">Your recent transactions and updates</p>
+          <p className="text-sm text-on-surface-variant mt-1">Your recent transactions and group updates.</p>
         </motion.div>
 
         <div className="flex gap-2 overflow-x-auto pb-2">
@@ -80,34 +96,40 @@ const ActivityPage: React.FC = () => {
           ))}
         </div>
 
-        <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-3">
+        <motion.div variants={stagger} initial="hidden" animate="visible" className="space-y-5">
           {loading ? (
             <div className="glass rounded-2xl p-8 text-center text-sm text-on-surface-variant">Loading activity...</div>
-          ) : filtered.length > 0 ? filtered.map((activity) => {
-            const action = activity.action ?? 'GROUP'
-            return (
-              <motion.div key={activity.id} variants={fadeUp}>
-                <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold" style={{ backgroundColor: `${typeColors[action] ?? '#10b981'}10` }}>
-                      {iconForAction(action)}
-                    </div>
-                    <div className="absolute -bottom-1 -right-1 ring-2 ring-white rounded-full">
-                      <Avatar initials={initialsFor(activity.userName)} color={colorFor(activity.userId)} size="sm" className="!w-4 !h-4 !text-[7px]" />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{activity.action ?? 'Activity'}</p>
-                    <p className="text-xs text-on-surface-variant truncate">{activity.description ?? `${activity.userName ?? 'Someone'} updated this group`}</p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-[10px] text-on-surface-variant">{shortDate(activity.createdAt)}</p>
-                  </div>
-                </div>
-              </motion.div>
-            )
-          }) : (
-            <div className="glass rounded-2xl p-8 text-center text-sm text-on-surface-variant">No activity yet.</div>
+          ) : filtered.length > 0 ? Object.entries(grouped).map(([date, items]) => (
+            <section key={date} className="space-y-3">
+              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant ml-1">{date}</p>
+              <div className="relative space-y-3 before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-outline-variant/50">
+                {items.map((activity) => {
+                  const action = activity.action ?? 'GROUP'
+                  return (
+                    <motion.div key={activity.id} variants={fadeUp} className="relative pl-14">
+                      <div className="absolute left-0 top-1">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold ring-4 ring-surface" style={{ backgroundColor: `${typeColors[action] ?? '#10b981'}18`, color: typeColors[action] ?? '#10b981' }}>
+                          {iconForAction(action)}
+                        </div>
+                      </div>
+                      <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
+                        <Avatar initials={initialsFor(activity.userName)} color={colorFor(activity.userId)} name={activity.userName} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{titleForActivity(activity)}</p>
+                          <p className="text-xs text-on-surface-variant truncate">{activity.userName ?? 'System'} · {relativeTime(activity.createdAt)}</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </section>
+          )) : (
+            <div className="glass rounded-2xl p-8 text-center">
+              <p className="text-base font-semibold">No recent activity</p>
+              <p className="text-sm text-on-surface-variant mt-2">Expense, settlement, and membership updates will appear here.</p>
+              <Link to="/groups" className="btn-primary inline-flex mt-5 text-sm">View Groups</Link>
+            </div>
           )}
         </motion.div>
       </div>

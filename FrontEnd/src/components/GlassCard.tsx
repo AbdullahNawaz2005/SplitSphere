@@ -15,8 +15,8 @@ const GlassCard: React.FC<GlassCardProps> = ({ children, className = '', hover =
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.4, 0, 0.2, 1] }}
-      whileHover={hover ? { y: -2, boxShadow: '0px 16px 40px rgba(30, 41, 59, 0.1)' } : undefined}
-      className={`glass rounded-3xl p-6 ${hover ? 'card-hover cursor-pointer' : ''} ${className}`}
+      whileHover={hover ? { y: -1, boxShadow: '0px 12px 28px rgba(30, 41, 59, 0.08)' } : undefined}
+      className={`glass rounded-2xl p-5 ${hover ? 'card-hover cursor-pointer' : ''} ${className}`}
       onClick={onClick}
     >
       {children}

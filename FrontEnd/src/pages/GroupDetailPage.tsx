@@ -11,7 +11,7 @@ import { useToast } from '../contexts/ToastContext'
 import { CategoryResponse, ExpenseResponse, GroupBalanceResponse, GroupResponse } from '../services/api'
 import { expenseService } from '../services/expenseService'
 import { groupService } from '../services/groupService'
-import { colorFor, iconFor, initialsFor, money, shortDate } from '../utils/display'
+import { categoryLabel, colorFor, iconFor, initialsFor, money, shortDate } from '../utils/display'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -164,7 +164,7 @@ const GroupDetailPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-2">Settlement Suggestions</h3>
-              <AvatarStack users={members.map((member) => ({ initials: member.initials ?? initialsFor(member.name), color: member.color ?? colorFor(member.id) }))} max={4} />
+            <AvatarStack users={members.map((member) => ({ initials: member.initials ?? initialsFor(member.name), color: member.color ?? colorFor(member.id), name: member.name }))} max={4} />
             </div>
             <div className="text-right">
               <p className="text-lg font-bold">{balance?.optimizedSettlements.length ?? 0}</p>
@@ -181,25 +181,32 @@ const GroupDetailPage: React.FC = () => {
             </button>
           </div>
           <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.08 } } }} className="space-y-3">
-            {sortedExpenses.length > 0 ? sortedExpenses.map((expense) => (
-              <motion.div key={expense.id} variants={fadeUp}>
-                <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: 'rgba(16,185,129,0.1)' }}>
-                    {iconFor(expense.categoryName ?? expense.description)}
+            {sortedExpenses.length > 0 ? sortedExpenses.map((expense) => {
+              const displayCategory = categoryLabel(expense.categoryName)
+              return (
+                <motion.div key={expense.id} variants={fadeUp}>
+                  <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: 'rgba(16,185,129,0.1)' }}>
+                      {iconFor(displayCategory ?? expense.description)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate">{expense.description ?? expense.title ?? 'Expense'}</p>
+                      <p className="text-xs text-on-surface-variant">{displayCategory} - {expense.payerName ?? 'Member'} paid - {shortDate(expense.expenseDate ?? expense.createdAt)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold">{money(expense.amount)}</p>
+                      <p className="text-[10px] text-on-surface-variant">{money(expense.amount / Math.max(expense.splits?.length ?? members.length, 1))}/person</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate">{expense.description ?? expense.title ?? 'Expense'}</p>
-                    <p className="text-xs text-on-surface-variant">{expense.payerName ?? 'Member'} paid - {shortDate(expense.expenseDate ?? expense.createdAt)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-bold">{money(expense.amount)}</p>
-                    <p className="text-[10px] text-on-surface-variant">{money(expense.amount / Math.max(expense.splits?.length ?? members.length, 1))}/person</p>
-                  </div>
-                </div>
-              </motion.div>
-            )) : (
-              <div className="glass rounded-2xl p-8 text-center text-on-surface-variant">
-                <p className="text-sm">No expenses yet. Add one to get started!</p>
+                </motion.div>
+              )
+            }) : (
+              <div className="glass rounded-2xl p-8 text-center">
+                <p className="text-base font-semibold">No expenses yet</p>
+                <p className="text-sm text-on-surface-variant mt-2">Add the first shared expense for this group.</p>
+                <button onClick={() => setModalOpen(true)} className="btn-primary inline-flex items-center gap-2 text-sm mt-5">
+                  <Plus className="w-4 h-4" /> Add Expense
+                </button>
               </div>
             )}
           </motion.div>
