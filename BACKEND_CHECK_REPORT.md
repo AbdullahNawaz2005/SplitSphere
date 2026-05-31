@@ -712,7 +712,7 @@ Backend changes:
 - `PATCH /api/settlements/{settlementId}/complete` is receiver/group-owner confirmation, not payer self-completion.
 - `POST /api/settlements/{settlementId}/reject` marks a pending settlement `REJECTED`.
 - Activity log records `SETTLEMENT_CREATED`, `SETTLEMENT_CONFIRMED`, and `SETTLEMENT_REJECTED`.
-- Settlement status database constraints now allow `PENDING_CONFIRMATION` and `REJECTED` via `V10__settlement_confirmation_statuses.sql`.
+- Settlement status database constraints now allow `PENDING_CONFIRMATION` and `REJECTED` via `V11__settlement_confirmation_statuses.sql`.
 - Expense creation already supported explicit `splits`; tests now lock that behavior so selected participants are the only people included.
 
 Authorization and validation:
