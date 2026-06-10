@@ -125,27 +125,27 @@ class SettlementServiceSecurityTest {
     }
 
     @Test
-    void payerCannotCompleteSettlementUnlessOwner() {
+    void payerCannotCompleteSettlement() {
         Settlement settlement = settlement(userA, userB);
         when(currentUserService.getCurrentUser()).thenReturn(userA);
         when(settlementRepository.findById(settlement.getId())).thenReturn(Optional.of(settlement));
 
         assertThatThrownBy(() -> settlementService.completeSettlement(settlement.getId()))
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessageContaining("receiver or group owner");
+                .hasMessageContaining("Only the receiver can complete this settlement");
 
         verify(settlementRepository, never()).save(any());
     }
 
     @Test
-    void payerCannotRejectSettlementUnlessOwner() {
+    void payerCannotRejectSettlement() {
         Settlement settlement = settlement(userA, userB);
         when(currentUserService.getCurrentUser()).thenReturn(userA);
         when(settlementRepository.findById(settlement.getId())).thenReturn(Optional.of(settlement));
 
         assertThatThrownBy(() -> settlementService.rejectSettlement(settlement.getId()))
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessageContaining("receiver or group owner");
+                .hasMessageContaining("Only the receiver can reject this settlement");
 
         verify(settlementRepository, never()).save(any());
     }
@@ -192,15 +192,29 @@ class SettlementServiceSecurityTest {
     }
 
     @Test
-    void groupOwnerCanCompleteSettlement() {
+    void groupOwnerCannotCompleteSettlementForAnotherReceiver() {
         Settlement settlement = settlement(userA, userB);
         when(currentUserService.getCurrentUser()).thenReturn(owner);
         when(settlementRepository.findById(settlement.getId())).thenReturn(Optional.of(settlement));
-        when(settlementRepository.save(any(Settlement.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = settlementService.completeSettlement(settlement.getId());
+        assertThatThrownBy(() -> settlementService.completeSettlement(settlement.getId()))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("Only the receiver can complete this settlement");
 
-        assertThat(response.status()).isEqualTo(SettlementStatus.COMPLETED.name());
+        verify(settlementRepository, never()).save(any());
+    }
+
+    @Test
+    void groupOwnerCannotRejectSettlementForAnotherReceiver() {
+        Settlement settlement = settlement(userA, userB);
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+        when(settlementRepository.findById(settlement.getId())).thenReturn(Optional.of(settlement));
+
+        assertThatThrownBy(() -> settlementService.rejectSettlement(settlement.getId()))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("Only the receiver can reject this settlement");
+
+        verify(settlementRepository, never()).save(any());
     }
 
     private CreateSettlementRequest createRequest(UUID payerId, UUID receiverId) {

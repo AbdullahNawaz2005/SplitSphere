@@ -261,3 +261,66 @@ npm run build
 ```
 
 Result: PASS. TypeScript and Vite production build completed successfully.
+
+## Final Production Blocker Fixes - 2026-06-02
+
+Frontend changes:
+
+- Settlement confirm/reject buttons are now shown only to the settlement receiver. Group owners no longer see normal-path controls for another member's pending settlement.
+- Dashboard, Groups, Activity, Insights, Settlements, Profile, and Add Expense modal were tightened for 360px, 390px, and 430px mobile widths.
+- Mobile card rows now use responsive stacking/wrapping, `min-w-0`, and `break-words` where long group names, settlement messages, or currency values previously caused cramped layouts.
+- Add Expense modal now has `role="dialog"`, `aria-modal`, labelled title/step text, Escape-to-close, a focus loop, labelled close button, labelled amount/search/description inputs, and a constrained mobile height with internal scrolling.
+- Create/Join Group modal now has `role="dialog"`, `aria-modal`, labelled title, Escape-to-close, a focus loop, labelled backdrop/close controls, and a constrained mobile height.
+- Icon-only controls now have accessible names: mobile navigation menu, profile avatar link, Add Expense floating action button, modal close buttons, password visibility toggles, and Group Detail back button.
+- Focus-visible styling was strengthened with an additional focus ring shadow and textarea/role-button coverage.
+
+Verification:
+
+```powershell
+npm run build
+```
+
+Result: PASS. Vite still reports the existing large chunk warning; no TypeScript errors.
+
+```powershell
+mvn clean test
+```
+
+Result: PASS. Backend security test count is now 28 after adding group-owner settlement denial coverage.
+
+Local frontend smoke test:
+
+- Ran a temporary headless Chrome/CDP smoke test with mocked authenticated backend responses.
+- Checked `/dashboard`, `/groups`, `/activity`, `/insights`, `/settlements`, `/profile`, and the Add Expense modal at 360px, 390px, and 430px CSS widths.
+- Result: PASS. No horizontal overflow, no visible unlabeled icon-only buttons, and no application console errors were detected.
+
+## Final Blocker Follow-Up - 2026-06-10
+
+Frontend changes:
+
+- Added explicit label associations for Add Expense amount, description, group selector, and category search controls.
+- Added accessible labels for Groups search, Create/Join Group modal fields, Insights group selector, Profile display currency selector, and toast dismiss controls.
+- Create/Join Group modal now focuses the group-name field when opened while retaining Escape close and keyboard focus looping.
+- Profile dark-mode toggle now reports `aria-pressed`.
+- Group Detail mobile rows now use tighter padding, responsive stacking, `min-w-0`, truncation, and `break-words` so long names and currency values do not force horizontal scrolling.
+
+Verification:
+
+```powershell
+npm run build
+```
+
+Result: PASS. Vite still reports the existing large chunk warning only.
+
+```powershell
+mvn clean test
+```
+
+Result: PASS. 28 tests, 0 failures.
+
+Local frontend smoke test:
+
+- Started Vite locally on `http://127.0.0.1:5173`.
+- Ran a temporary headless Chrome/CDP smoke test with mocked authenticated API responses.
+- Checked Dashboard, Groups, Activity, Insights, Settlements, Profile, and Dashboard Add Expense modal at 360px, 390px, and 430px.
+- Result: PASS across 21 checks. No horizontal overflow, no visible unlabeled icon-only buttons, no unlabeled dialogs, and no runtime/console errors.

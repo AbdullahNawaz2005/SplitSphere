@@ -63,7 +63,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               >
                 <Icon className={`w-5 h-5 mt-0.5 ${colors[toast.type]}`} />
                 <p className="text-sm font-medium flex-1">{toast.message}</p>
-                <button onClick={() => removeToast(toast.id)} className="p-1 rounded-lg hover:bg-white/30 transition-colors">
+                <button
+                  type="button"
+                  onClick={() => removeToast(toast.id)}
+                  className="p-1 rounded-lg hover:bg-white/30 transition-colors"
+                  aria-label="Dismiss notification"
+                >
                   <X className="w-4 h-4 text-on-surface-variant" />
                 </button>
               </motion.div>

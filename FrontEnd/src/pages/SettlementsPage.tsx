@@ -190,7 +190,7 @@ const SettlementsPage: React.FC = () => {
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <GlassCard hover={false} delay={0.1}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center">
@@ -230,7 +230,7 @@ const SettlementsPage: React.FC = () => {
         </div>
 
         <div className="grid lg:grid-cols-5 gap-5">
-          <GlassCard hover={false} delay={0.25} className="lg:col-span-2">
+          <GlassCard hover={false} delay={0.25} className="lg:col-span-2 min-w-0">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-bold tracking-tight">Current Balances</h3>
@@ -241,12 +241,12 @@ const SettlementsPage: React.FC = () => {
               {loading ? (
                 <p className="text-sm text-on-surface-variant">Loading balances...</p>
               ) : balances.length > 0 ? balances.slice(0, 8).map((balance) => (
-                <div key={balance.id} className="flex items-center justify-between gap-3 glass-subtle rounded-xl p-3">
+                <div key={balance.id} className="flex items-center justify-between gap-3 glass-subtle rounded-xl p-3 min-w-0">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold truncate">{balance.userName}</p>
                     <p className="text-xs text-on-surface-variant truncate">{balance.groupName}</p>
                   </div>
-                  <p className={`text-sm font-bold ${balance.amount >= 0 ? 'text-primary-container' : 'text-error'}`}>
+                  <p className={`shrink-0 text-sm font-bold ${balance.amount >= 0 ? 'text-primary-container' : 'text-error'}`}>
                     {balance.amount >= 0 ? '+' : '-'}{money(Math.abs(balance.amount))}
                   </p>
                 </div>
@@ -259,7 +259,7 @@ const SettlementsPage: React.FC = () => {
             </div>
           </GlassCard>
 
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3 min-w-0">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-lg font-bold tracking-tight">Recommended Settlement Plan</h3>
@@ -276,31 +276,33 @@ const SettlementsPage: React.FC = () => {
               const canResolve = Boolean(
                 settlement.persisted &&
                 settlement.status !== 'SUGGESTED' &&
-                (settlement.toUserId === user?.id || settlement.groupOwnerId === user?.id)
+                settlement.toUserId === user?.id
               )
               const pendingMessage = settlement.toUserId === user?.id
                 ? `${settlement.fromUserName} marked ${money(settlement.amount)} as paid to you. Confirm payment?`
                 : `${settlement.fromUserName} marked ${money(settlement.amount)} as paid to ${settlement.toUserName}.`
               return (
                 <motion.div key={settlement.id} variants={fadeUp}>
-                  <div className="glass rounded-2xl p-5 card-hover">
-                    <div className="flex items-center gap-4">
-                      <Avatar initials={initialsFor(settlement.fromUserName)} color={colorFor(settlement.fromUserId)} size="md" />
-                      <div className="flex items-center gap-2 text-on-surface-variant">
+                  <div className="glass rounded-2xl p-4 sm:p-5 card-hover min-w-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div className="flex items-center gap-3 shrink-0">
+                        <Avatar initials={initialsFor(settlement.fromUserName)} color={colorFor(settlement.fromUserId)} size="md" />
+                        <div className="flex items-center gap-2 text-on-surface-variant">
                         <ArrowRight className="w-4 h-4" />
+                        </div>
+                        <Avatar initials={initialsFor(settlement.toUserName)} color={colorFor(settlement.toUserId)} size="md" />
                       </div>
-                      <Avatar initials={initialsFor(settlement.toUserName)} color={colorFor(settlement.toUserId)} size="md" />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm">
                           {settlement.fromUserName.split(' ')[0]} {'->'} {settlement.toUserName.split(' ')[0]}
                         </p>
-                        <p className="text-xs text-on-surface-variant">
+                        <p className="text-xs text-on-surface-variant break-words">
                           {settlement.status === 'SUGGESTED'
                             ? `${settlement.groupName} - ${settlement.originalTransactions} optimized settlement`
                             : pendingMessage}
                         </p>
                       </div>
-                      <div className="text-right space-y-1">
+                      <div className="sm:text-right space-y-1 shrink-0">
                         <p className="text-lg font-bold">{money(settlement.amount)}</p>
                         <span className={`chip ${config.chip}`}>
                           <StatusIcon className="w-3 h-3" /> {config.label}
@@ -308,7 +310,7 @@ const SettlementsPage: React.FC = () => {
                       </div>
                     </div>
                     {(canRecord || canResolve) && (
-                      <div className="mt-4 flex justify-end gap-2">
+                      <div className="mt-4 flex flex-wrap justify-end gap-2">
                         {canResolve && (
                           <>
                             <button disabled={settlingId === settlement.id} onClick={() => rejectPayment(settlement)} className="btn-ghost text-xs py-2 px-4 disabled:opacity-60">
@@ -343,13 +345,13 @@ const SettlementsPage: React.FC = () => {
           <h3 className="text-lg font-bold tracking-tight mb-4">Settlement History</h3>
           <div className="space-y-3">
             {history.length > 0 ? history.map((settlement) => (
-              <div key={settlement.id} className="glass rounded-2xl p-4 flex items-center gap-4">
+              <div key={settlement.id} className="glass rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 min-w-0">
                 <Avatar initials={initialsFor(settlement.fromUserName)} color={colorFor(settlement.fromUserId)} name={settlement.fromUserName} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{settlement.fromUserName} paid {settlement.toUserName}</p>
+                  <p className="text-sm font-semibold break-words">{settlement.fromUserName} paid {settlement.toUserName}</p>
                   <p className="text-xs text-on-surface-variant truncate">{settlement.groupName}</p>
                 </div>
-                <p className="text-sm font-bold">{money(settlement.amount)}</p>
+                <p className="text-sm font-bold shrink-0">{money(settlement.amount)}</p>
                 <span className={`chip ${statusConfig[settlement.status].chip}`}>
                   {statusConfig[settlement.status].label}
                 </span>

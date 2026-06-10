@@ -75,8 +75,8 @@ const ActivityPage: React.FC = () => {
   }, [filtered])
 
   return (
-    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
-      <div className="max-w-4xl mx-auto space-y-5">
+    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-4 sm:px-5 md:px-10 overflow-x-hidden">
+      <div className="max-w-4xl mx-auto space-y-5 min-w-0">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Activity</h1>
           <p className="text-sm text-on-surface-variant mt-1">Your recent transactions and group updates.</p>
@@ -87,6 +87,7 @@ const ActivityPage: React.FC = () => {
             <button
               key={filter}
               onClick={() => setActiveFilter(filter)}
+              aria-pressed={activeFilter === filter}
               className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
                 activeFilter === filter ? 'bg-gradient-primary text-white' : 'glass-subtle hover:bg-white/40 text-on-surface-variant'
               }`}
@@ -100,22 +101,22 @@ const ActivityPage: React.FC = () => {
           {loading ? (
             <div className="glass rounded-2xl p-8 text-center text-sm text-on-surface-variant">Loading activity...</div>
           ) : filtered.length > 0 ? Object.entries(grouped).map(([date, items]) => (
-            <section key={date} className="space-y-3">
+            <section key={date} className="space-y-3 min-w-0">
               <p className="text-[10px] uppercase tracking-widest text-on-surface-variant ml-1">{date}</p>
               <div className="relative space-y-3 before:absolute before:left-5 before:top-2 before:bottom-2 before:w-px before:bg-outline-variant/50">
                 {items.map((activity) => {
                   const action = activity.action ?? 'GROUP'
                   return (
-                    <motion.div key={activity.id} variants={fadeUp} className="relative pl-14">
+                    <motion.div key={activity.id} variants={fadeUp} className="relative pl-12 sm:pl-14 min-w-0">
                       <div className="absolute left-0 top-1">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold ring-4 ring-surface" style={{ backgroundColor: `${typeColors[action] ?? '#10b981'}18`, color: typeColors[action] ?? '#10b981' }}>
                           {iconForAction(action)}
                         </div>
                       </div>
-                      <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
+                      <div className="glass rounded-2xl p-4 card-hover flex items-center gap-3 sm:gap-4 min-w-0">
                         <Avatar initials={initialsFor(activity.userName)} color={colorFor(activity.userId)} name={activity.userName} size="sm" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{titleForActivity(activity)}</p>
+                          <p className="font-semibold text-sm break-words">{titleForActivity(activity)}</p>
                           <p className="text-xs text-on-surface-variant truncate">{activity.userName ?? 'System'} · {relativeTime(activity.createdAt)}</p>
                         </div>
                       </div>

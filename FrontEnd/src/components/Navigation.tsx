@@ -28,9 +28,9 @@ export const TopNav: React.FC = () => {
       transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
       className="fixed top-0 left-0 right-0 z-50 px-4 pt-4"
     >
-      <nav className="mx-auto max-w-6xl glass-strong rounded-2xl px-6 py-3 flex items-center justify-between">
+      <nav className="mx-auto max-w-6xl glass-strong rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between min-w-0">
         {/* Logo */}
-        <Link to="/dashboard" className="flex items-center gap-2">
+        <Link to="/dashboard" className="flex items-center gap-2 min-w-0" aria-label="Go to dashboard">
           <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center">
             <Zap className="w-4 h-4 text-white" />
           </div>
@@ -78,7 +78,7 @@ export const TopNav: React.FC = () => {
             <TrendingUp className="w-4 h-4" />
             Insights
           </Link>
-          <Link to="/profile" className="avatar-ring" title={user?.name ?? 'Profile'}>
+          <Link to="/profile" className="avatar-ring" title={user?.name ?? 'Profile'} aria-label="Open profile">
             <Avatar initials={initials} color={color} name={user?.name} size="sm" className="!w-8 !h-8" />
           </Link>
         </div>
@@ -87,6 +87,9 @@ export const TopNav: React.FC = () => {
         <button
           className="md:hidden p-2 rounded-xl hover:bg-white/30 transition-colors"
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-navigation-menu"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -96,6 +99,7 @@ export const TopNav: React.FC = () => {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
+            id="mobile-navigation-menu"
             initial={{ opacity: 0, y: -10, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.97 }}
@@ -107,6 +111,7 @@ export const TopNav: React.FC = () => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setMobileOpen(false)}
+                aria-current={location.pathname === item.path ? 'page' : undefined}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
                   location.pathname === item.path ? 'bg-primary-container/10 text-primary-container' : 'text-on-surface-variant hover:bg-white/30'
                 }`}
@@ -133,14 +138,15 @@ export const BottomNav: React.FC = () => {
       transition={{ duration: 0.5, delay: 0.3 }}
       className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 safe-bottom"
     >
-      <div className="glass-strong rounded-2xl px-2 py-2 flex items-center justify-around">
+      <div className="glass-strong rounded-2xl px-1 py-2 flex items-center justify-around min-w-0">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/')
           return (
             <Link
               key={item.path}
               to={item.path}
-              className={`relative flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-300 ${
+              aria-current={isActive ? 'page' : undefined}
+              className={`relative flex-1 min-w-0 flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-300 ${
                 isActive ? 'text-primary-container' : 'text-on-surface-variant'
               }`}
             >

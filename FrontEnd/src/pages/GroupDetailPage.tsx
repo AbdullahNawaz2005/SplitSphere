@@ -96,7 +96,7 @@ const GroupDetailPage: React.FC = () => {
 
   if (loading && !group) {
     return (
-      <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
+      <div className="relative z-10 pt-24 pb-28 md:pb-10 px-4 sm:px-5 md:px-10 overflow-x-hidden">
         <div className="max-w-4xl mx-auto glass rounded-2xl p-8 text-center text-sm text-on-surface-variant">Loading group...</div>
       </div>
     )
@@ -104,42 +104,42 @@ const GroupDetailPage: React.FC = () => {
 
   if (!group) {
     return (
-      <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
+      <div className="relative z-10 pt-24 pb-28 md:pb-10 px-4 sm:px-5 md:px-10 overflow-x-hidden">
         <div className="max-w-4xl mx-auto glass rounded-2xl p-8 text-center text-sm text-on-surface-variant">Group not found.</div>
       </div>
     )
   }
 
   return (
-    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
-          <Link to="/groups" className="p-2 rounded-xl glass-subtle hover:bg-white/40 transition-colors">
+    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-4 sm:px-5 md:px-10 overflow-x-hidden">
+      <div className="max-w-4xl mx-auto space-y-6 min-w-0">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4 min-w-0">
+          <Link to="/groups" className="p-2 rounded-xl glass-subtle hover:bg-white/40 transition-colors" aria-label="Back to groups">
             <ArrowLeft className="w-5 h-5" />
           </Link>
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">{iconFor(group.name)}</span>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">{group.name}</h1>
-                <p className="text-sm text-on-surface-variant">{group.description ?? `Invite ${group.inviteCode ?? ''}`}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-3xl shrink-0">{iconFor(group.name)}</span>
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold tracking-tight truncate">{group.name}</h1>
+                <p className="text-sm text-on-surface-variant break-words">{group.description ?? `Invite ${group.inviteCode ?? ''}`}</p>
               </div>
             </div>
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <GlassCard hover={false} delay={0.1} className="text-center">
+        <div className="grid grid-cols-1 min-[380px]:grid-cols-3 gap-3 sm:gap-4">
+          <GlassCard hover={false} delay={0.1} className="text-center min-w-0">
             <p className="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Total</p>
-            <p className="text-xl font-bold">{money(totalExpenses)}</p>
+            <p className="text-xl font-bold break-words">{money(totalExpenses)}</p>
           </GlassCard>
-          <GlassCard hover={false} delay={0.15} className="text-center">
+          <GlassCard hover={false} delay={0.15} className="text-center min-w-0">
             <p className="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Your Balance</p>
-            <p className={`text-xl font-bold ${userBalance >= 0 ? 'text-primary-container' : 'text-error'}`}>
+            <p className={`text-xl font-bold break-words ${userBalance >= 0 ? 'text-primary-container' : 'text-error'}`}>
               {userBalance >= 0 ? '+' : ''}{money(Math.abs(userBalance))}
             </p>
           </GlassCard>
-          <GlassCard hover={false} delay={0.2} className="text-center">
+          <GlassCard hover={false} delay={0.2} className="text-center min-w-0">
             <p className="text-[10px] uppercase tracking-widest text-on-surface-variant mb-1">Members</p>
             <p className="text-xl font-bold">{members.length}</p>
           </GlassCard>
@@ -149,9 +149,9 @@ const GroupDetailPage: React.FC = () => {
           <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-4">Members</h3>
           <div className="flex flex-wrap gap-3">
             {members.map((member) => (
-              <div key={member.id} className="flex items-center gap-2 glass-subtle rounded-full pl-1 pr-4 py-1">
+              <div key={member.id} className="flex items-center gap-2 glass-subtle rounded-full pl-1 pr-4 py-1 min-w-0 max-w-full">
                 <Avatar initials={member.initials ?? initialsFor(member.name)} color={member.color ?? colorFor(member.id)} size="sm" />
-                <span className="text-sm font-medium">{member.name}</span>
+                <span className="text-sm font-medium truncate">{member.name}</span>
               </div>
             ))}
             <div className="flex items-center gap-2 glass-subtle rounded-full px-4 py-2 text-sm font-medium text-primary">
@@ -161,12 +161,12 @@ const GroupDetailPage: React.FC = () => {
         </GlassCard>
 
         <GlassCard hover={false} delay={0.3}>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col min-[420px]:flex-row min-[420px]:items-center justify-between gap-3 min-w-0">
+            <div className="min-w-0">
               <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant mb-2">Settlement Suggestions</h3>
             <AvatarStack users={members.map((member) => ({ initials: member.initials ?? initialsFor(member.name), color: member.color ?? colorFor(member.id), name: member.name }))} max={4} />
             </div>
-            <div className="text-right">
+            <div className="min-[420px]:text-right">
               <p className="text-lg font-bold">{balance?.optimizedSettlements.length ?? 0}</p>
               <p className="text-xs text-on-surface-variant">optimized payments</p>
             </div>
@@ -174,9 +174,9 @@ const GroupDetailPage: React.FC = () => {
         </GlassCard>
 
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
             <h3 className="text-lg font-bold tracking-tight">Expenses</h3>
-            <button onClick={() => setModalOpen(true)} className="btn-primary flex items-center gap-2 text-sm">
+            <button onClick={() => setModalOpen(true)} className="btn-primary flex items-center gap-2 text-sm shrink-0 px-4 sm:px-6">
               <Plus className="w-4 h-4" /> Add Expense
             </button>
           </div>
@@ -185,16 +185,16 @@ const GroupDetailPage: React.FC = () => {
               const displayCategory = categoryLabel(expense.categoryName)
               return (
                 <motion.div key={expense.id} variants={fadeUp}>
-                  <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: 'rgba(16,185,129,0.1)' }}>
+                  <div className="glass rounded-2xl p-4 card-hover flex flex-col min-[420px]:flex-row min-[420px]:items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: 'rgba(16,185,129,0.1)' }}>
                       {iconFor(displayCategory ?? expense.description)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate">{expense.description ?? expense.title ?? 'Expense'}</p>
-                      <p className="text-xs text-on-surface-variant">{displayCategory} - {expense.payerName ?? 'Member'} paid - {shortDate(expense.expenseDate ?? expense.createdAt)}</p>
+                      <p className="text-xs text-on-surface-variant break-words">{displayCategory} - {expense.payerName ?? 'Member'} paid - {shortDate(expense.expenseDate ?? expense.createdAt)}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold">{money(expense.amount)}</p>
+                    <div className="min-[420px]:text-right shrink-0">
+                      <p className="text-sm font-bold break-words">{money(expense.amount)}</p>
                       <p className="text-[10px] text-on-surface-variant">{money(expense.amount / Math.max(expense.splits?.length ?? members.length, 1))}/person</p>
                     </div>
                   </div>

@@ -166,34 +166,34 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
-      <div className="max-w-6xl mx-auto space-y-5">
+    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-4 sm:px-5 md:px-10 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto space-y-5 min-w-0">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
           <p className="text-sm text-on-surface-variant">Good evening,</p>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{user?.name ?? 'SplitSphere'}</h1>
         </motion.div>
 
-        <div className="grid lg:grid-cols-4 gap-3">
-          <GlassCard className="lg:col-span-2" hover={false} delay={0.1}>
+        <div className="grid lg:grid-cols-4 gap-3 min-w-0">
+          <GlassCard className="lg:col-span-2 min-w-0" hover={false} delay={0.1}>
             <div className="flex items-start justify-between gap-4">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs uppercase tracking-widest text-on-surface-variant mb-2">Net Balance</p>
-                <h2 className={`text-4xl font-bold tracking-tight ${totalBalance >= 0 ? 'text-gradient' : 'text-error'}`}>
+                <h2 className={`text-3xl sm:text-4xl font-bold tracking-tight break-words ${totalBalance >= 0 ? 'text-gradient' : 'text-error'}`}>
                   {totalBalance >= 0 ? '+' : '-'}{money(Math.abs(totalBalance))}
                 </h2>
               </div>
-              <span className="chip chip-emerald">
+              <span className="chip chip-emerald shrink-0">
                 <TrendingUp className="w-3 h-3" /> Live
               </span>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-5">
               <div className="glass-subtle rounded-xl p-3">
                 <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">You're Owed</p>
-                <p className="text-lg font-bold text-primary-container">{money(youAreOwed)}</p>
+                <p className="text-base sm:text-lg font-bold text-primary-container break-words">{money(youAreOwed)}</p>
               </div>
               <div className="glass-subtle rounded-xl p-3">
                 <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">You Owe</p>
-                <p className="text-lg font-bold text-error">{money(youOwe)}</p>
+                <p className="text-base sm:text-lg font-bold text-error break-words">{money(youOwe)}</p>
               </div>
             </div>
           </GlassCard>
@@ -225,8 +225,8 @@ const DashboardPage: React.FC = () => {
           </GlassCard>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-5">
-          <div>
+        <div className="grid lg:grid-cols-3 gap-5 min-w-0">
+          <div className="min-w-0">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold tracking-tight">Active Groups</h3>
               <Link to="/groups" className="text-xs text-primary font-semibold hover:underline">See All</Link>
@@ -237,21 +237,21 @@ const DashboardPage: React.FC = () => {
               ) : groups.length > 0 ? groups.slice(0, 3).map((group) => (
                 <motion.div key={group.id} variants={fadeUp}>
                   <Link to={`/groups/${group.id}`}>
-                    <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{ backgroundColor: `${colorFor(group.id)}15` }}>
+                    <div className="glass rounded-2xl p-4 card-hover flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: `${colorFor(group.id)}15` }}>
                         {iconFor(group.name)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{group.name}</p>
                         <p className="text-xs text-on-surface-variant truncate">{group.description ?? group.inviteCode ?? 'Shared expense group'}</p>
                       </div>
-                      <div className="text-right">
-                        <p className={`text-sm font-bold ${(balances[group.id] ?? 0) >= 0 ? 'text-primary-container' : 'text-error'}`}>
+                      <div className="text-right shrink-0 min-w-0 max-w-[8rem]">
+                        <p className={`text-sm font-bold break-words ${(balances[group.id] ?? 0) >= 0 ? 'text-primary-container' : 'text-error'}`}>
                           {(balances[group.id] ?? 0) >= 0 ? '+' : ''}{money(Math.abs(balances[group.id] ?? 0))}
                         </p>
                         <AvatarStack users={(members[group.id] ?? []).map((member) => ({ initials: member.initials ?? initialsFor(member.name), color: member.color ?? colorFor(member.id), name: member.name }))} max={3} />
                       </div>
-                      <ChevronRight className="w-4 h-4 text-outline-variant" />
+                      <ChevronRight className="w-4 h-4 text-outline-variant shrink-0 hidden sm:block" />
                     </div>
                   </Link>
                 </motion.div>
@@ -264,7 +264,7 @@ const DashboardPage: React.FC = () => {
             </motion.div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold tracking-tight">Recent Expenses</h3>
               <Link to="/activity" className="text-xs text-primary font-semibold hover:underline">See All</Link>
@@ -275,16 +275,16 @@ const DashboardPage: React.FC = () => {
                 const displayCategory = categoryLabel(expense.categoryName)
                 return (
                   <motion.div key={expense.id} variants={fadeUp}>
-                    <div className="glass rounded-2xl p-4 card-hover flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: 'rgba(16,185,129,0.1)' }}>
+                    <div className="glass rounded-2xl p-4 card-hover flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0" style={{ backgroundColor: 'rgba(16,185,129,0.1)' }}>
                         {iconFor(displayCategory ?? expense.description)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm truncate">{expense.description ?? expense.title ?? 'Expense'}</p>
-                        <p className="text-xs text-on-surface-variant">{displayCategory} - {group?.name ?? 'Group'} - {shortDate(expense.expenseDate ?? expense.createdAt)}</p>
+                        <p className="text-xs text-on-surface-variant truncate">{displayCategory} - {group?.name ?? 'Group'} - {shortDate(expense.expenseDate ?? expense.createdAt)}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold">{money(expense.amount)}</p>
+                      <div className="text-right shrink-0 max-w-[7.5rem]">
+                        <p className="text-sm font-bold break-words">{money(expense.amount)}</p>
                         <p className="text-[10px] text-on-surface-variant">{expense.payerId === user?.id ? 'You paid' : `${expense.payerName ?? 'Member'} paid`}</p>
                       </div>
                     </div>
@@ -299,7 +299,7 @@ const DashboardPage: React.FC = () => {
             </motion.div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             {pendingConfirmations.length > 0 && (
               <div className="mb-5">
                 <h3 className="text-lg font-bold tracking-tight mb-4">Pending Confirmations</h3>
@@ -310,7 +310,7 @@ const DashboardPage: React.FC = () => {
                         {settlement.payerName} marked {money(settlement.amount)} as paid to you.
                       </p>
                       <p className="text-xs text-on-surface-variant mt-1">{settlement.groupName}</p>
-                      <div className="mt-3 flex justify-end gap-2">
+                      <div className="mt-3 flex flex-wrap justify-end gap-2">
                         <button onClick={() => resolveSettlement(settlement.id, false)} className="btn-ghost text-xs px-3 py-2">
                           Not Received
                         </button>
@@ -331,7 +331,7 @@ const DashboardPage: React.FC = () => {
               {activities.length > 0 ? activities.map((activity) => (
                 <motion.div key={activity.id} variants={fadeUp}>
                   <div className="glass rounded-2xl p-4 card-hover">
-                    <p className="text-sm font-semibold truncate">{activity.description ?? activity.action ?? 'Activity'}</p>
+                    <p className="text-sm font-semibold break-words">{activity.description ?? activity.action ?? 'Activity'}</p>
                     <p className="text-xs text-on-surface-variant mt-1">{activity.userName ?? 'Someone'} · {relativeTime(activity.createdAt)}</p>
                   </div>
                 </motion.div>
@@ -349,6 +349,7 @@ const DashboardPage: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setExpenseModalOpen(true)}
+          aria-label="Add expense"
           className="fixed bottom-24 md:bottom-8 right-6 w-14 h-14 rounded-2xl bg-gradient-primary flex items-center justify-center text-white shadow-lg shadow-primary-container/30 z-40"
         >
           <Plus className="w-6 h-6" />

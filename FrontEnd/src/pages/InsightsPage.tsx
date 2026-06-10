@@ -83,19 +83,22 @@ const InsightsPage: React.FC = () => {
   const topCategory = [...categoryData].sort((a, b) => b.value - a.value)[0]?.name ?? 'None'
 
   return (
-    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-4 sm:px-5 md:px-10 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto space-y-6 min-w-0">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Spending Insights</h1>
           <p className="text-sm text-on-surface-variant mt-1">See where your group spends the most money.</p>
         </motion.div>
 
         {groups.length > 0 && (
-          <select value={selectedGroupId} onChange={(event) => setSelectedGroupId(event.target.value)} className="px-4 py-3 glass-input rounded-xl outline-none text-sm">
+          <>
+          <label htmlFor="insights-group" className="sr-only">Insights group</label>
+          <select id="insights-group" value={selectedGroupId} onChange={(event) => setSelectedGroupId(event.target.value)} className="w-full sm:w-auto max-w-full px-4 py-3 glass-input rounded-xl outline-none text-sm">
             {groups.map((group) => (
               <option key={group.id} value={group.id}>{group.name}</option>
             ))}
           </select>
+          </>
         )}
 
         {loading ? (
@@ -110,7 +113,7 @@ const InsightsPage: React.FC = () => {
           </GlassCard>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 min-[380px]:grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: 'Total Shared', value: money(analytics?.totalExpenses), color: '#10b981' },
                 { label: 'Expenses', value: String(analytics?.expenseCount ?? 0), color: '#06b6d4' },
@@ -119,7 +122,7 @@ const InsightsPage: React.FC = () => {
               ].map((stat, i) => (
                 <GlassCard key={stat.label} hover={false} delay={i * 0.05}>
                   <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">{stat.label}</p>
-                  <p className="text-xl font-bold mt-1" style={{ color: stat.color }}>{stat.value}</p>
+                  <p className="text-lg sm:text-xl font-bold mt-1 break-words" style={{ color: stat.color }}>{stat.value}</p>
                 </GlassCard>
               ))}
             </div>
@@ -130,15 +133,15 @@ const InsightsPage: React.FC = () => {
                 <p className="text-xs text-on-surface-variant mb-4">Backed by the selected group's analytics endpoint</p>
                 {categoryData.length > 0 ? (
                   <>
-                    <div className="h-72 flex items-center justify-center">
+                    <div className="h-64 sm:h-72 flex items-center justify-center min-w-0 overflow-hidden">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
                             data={categoryData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={70}
-                            outerRadius={110}
+                            innerRadius="52%"
+                            outerRadius="78%"
                             paddingAngle={3}
                             dataKey="value"
                             stroke="none"

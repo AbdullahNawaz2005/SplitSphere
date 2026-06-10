@@ -93,7 +93,7 @@ Confirm received:
 
 `PATCH /api/settlements/{settlementId}/complete`
 
-- JWT user must be the receiver or group owner.
+- JWT user must be the receiver.
 - Expected response status: `COMPLETED`.
 - Balances update only after this response.
 
@@ -101,7 +101,7 @@ Reject payment:
 
 `POST /api/settlements/{settlementId}/reject`
 
-- JWT user must be the receiver or group owner.
+- JWT user must be the receiver.
 - Expected response status: `REJECTED`.
 - Balances do not change.
 
@@ -133,9 +133,9 @@ Expected behavior:
 - Duplicate split users return `400`.
 - Non-member split users return `403`.
 
-Verification on 2026-06-01:
+Verification on 2026-06-02:
 
-- `mvn clean test`: PASS, 27 tests run.
+- `mvn clean test`: PASS, 28 tests run.
 - `npm run build`: PASS.
 
 ## Login Owner

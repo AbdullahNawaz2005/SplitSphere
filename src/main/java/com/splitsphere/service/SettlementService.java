@@ -81,7 +81,7 @@ public class SettlementService {
         Settlement settlement = settlementRepository.findById(settlementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement not found"));
         groupService.requireActiveMember(settlement.getGroup(), actor);
-        requireReceiverOrOwner(settlement, actor, "complete");
+        requireReceiver(settlement, actor, "complete");
         requireConfirmable(settlement);
         settlement.setStatus(SettlementStatus.COMPLETED);
         settlement.setSettledAt(Instant.now());
@@ -100,7 +100,7 @@ public class SettlementService {
         Settlement settlement = settlementRepository.findById(settlementId)
                 .orElseThrow(() -> new ResourceNotFoundException("Settlement not found"));
         groupService.requireActiveMember(settlement.getGroup(), actor);
-        requireReceiverOrOwner(settlement, actor, "reject");
+        requireReceiver(settlement, actor, "reject");
         requireRejectable(settlement);
         settlement.setStatus(SettlementStatus.REJECTED);
         settlement.setSettledAt(null);
@@ -113,9 +113,9 @@ public class SettlementService {
         return SettlementResponse.from(settlementRepository.save(settlement));
     }
 
-    private void requireReceiverOrOwner(Settlement settlement, User actor, String action) {
-        if (!settlement.getReceiver().getId().equals(actor.getId()) && !settlement.getGroup().getOwner().getId().equals(actor.getId())) {
-            throw new ForbiddenException("Only the receiver or group owner can " + action + " this settlement");
+    private void requireReceiver(Settlement settlement, User actor, String action) {
+        if (!settlement.getReceiver().getId().equals(actor.getId())) {
+            throw new ForbiddenException("Only the receiver can " + action + " this settlement");
         }
     }
 

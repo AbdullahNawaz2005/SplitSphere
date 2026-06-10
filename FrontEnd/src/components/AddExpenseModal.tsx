@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
@@ -128,6 +128,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
   isSubmitting = false,
   onSubmit,
 }) => {
+  const modalRef = useRef<HTMLDivElement>(null)
   const [currentStep, setCurrentStep] = useState<Step>('amount')
   const [amount, setAmount] = useState('')
   const [title, setTitle] = useState('')
@@ -183,7 +184,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     )
   }, [selectedGroupMembers])
 
-  const resetAndClose = () => {
+  const resetAndClose = useCallback(() => {
     setCurrentStep('amount')
     setAmount('')
     setTitle('')
@@ -192,7 +193,33 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
     setSelectedPeople([])
     setSelectedGroupId(defaultGroupId ?? groups[0]?.id ?? '')
     onClose()
-  }
+  }, [defaultGroupId, groups, onClose])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        resetAndClose()
+        return
+      }
+      if (event.key !== 'Tab') return
+      const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (!focusable?.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, resetAndClose])
 
   const amountValue = Number(amount)
   const validAmount = Number.isFinite(amountValue) && amountValue > 0
@@ -331,15 +358,20 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
             animate="visible"
             exit="hidden"
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="relative w-full max-w-lg glass-strong rounded-3xl overflow-hidden"
+            className="relative w-full max-w-lg max-h-[calc(100dvh-2rem)] glass-strong rounded-3xl overflow-hidden flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-expense-title"
+            aria-describedby="add-expense-step"
+            ref={modalRef}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-6 pb-4">
               <div>
-                <h2 className="text-xl font-bold tracking-tight">Add Expense</h2>
-                <p className="text-sm text-on-surface-variant mt-1">Step {stepIndex + 1} of {steps.length}</p>
+                <h2 id="add-expense-title" className="text-xl font-bold tracking-tight">Add Expense</h2>
+                <p id="add-expense-step" className="text-sm text-on-surface-variant mt-1">Step {stepIndex + 1} of {steps.length}</p>
               </div>
-              <button onClick={resetAndClose} className="p-2 rounded-xl hover:bg-white/30 transition-colors">
+              <button onClick={resetAndClose} className="p-2 rounded-xl hover:bg-white/30 transition-colors" aria-label="Close add expense dialog">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -356,7 +388,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
             </div>
 
             {/* Content */}
-            <div className="p-6 min-h-[320px]">
+            <div className="p-5 sm:p-6 min-h-0 overflow-y-auto">
               <AnimatePresence mode="wait">
                 {currentStep === 'amount' && (
                   <motion.div
@@ -368,14 +400,16 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                     className="space-y-6"
                   >
                     <div>
-                      <h3 className="text-2xl font-bold tracking-tight">How much was it?</h3>
+                      <h3 className="text-xl sm:text-2xl font-bold tracking-tight">How much was it?</h3>
                       <p className="text-sm text-on-surface-variant mt-1">Enter the total bill amount in {currency}</p>
                     </div>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-primary-container">
                         {currencyOptions[currency].symbol}
                       </span>
+                      <label htmlFor="expense-amount" className="sr-only">Expense amount in {currency}</label>
                       <input
+                        id="expense-amount"
                         type="number"
                         inputMode="decimal"
                         min="0"
@@ -383,31 +417,36 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         placeholder={formatCurrencyAmount(0, currency)}
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
-                        className="w-full pl-16 pr-4 py-4 text-3xl font-bold glass-input rounded-2xl outline-none text-on-surface placeholder:text-outline-variant"
+                        aria-label={`Expense amount in ${currency}`}
+                        className="w-full pl-16 pr-4 py-4 text-2xl sm:text-3xl font-bold glass-input rounded-2xl outline-none text-on-surface placeholder:text-outline-variant"
                         autoFocus
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-medium uppercase tracking-widest text-on-surface-variant mb-2 block">Description</label>
+                      <label htmlFor="expense-description" className="text-xs font-medium uppercase tracking-widest text-on-surface-variant mb-2 block">Description</label>
                       <input
+                        id="expense-description"
                         type="text"
                         placeholder="e.g. Dinner at Monal"
                         value={title}
                         onChange={(e) => setTitle(e.target.value.slice(0, TITLE_MAX_LENGTH))}
                         maxLength={TITLE_MAX_LENGTH}
+                        aria-label="Expense description"
                         className="w-full px-4 py-3 glass-input rounded-xl outline-none text-on-surface placeholder:text-outline-variant text-sm"
                       />
                       <p className="mt-1 text-[11px] text-on-surface-variant">{title.length}/{TITLE_MAX_LENGTH}</p>
                     </div>
                     {groups.length > 1 && !defaultGroupId && (
                       <div>
-                        <label className="text-xs font-medium uppercase tracking-widest text-on-surface-variant mb-2 block">Group</label>
+                        <label htmlFor="expense-group" className="text-xs font-medium uppercase tracking-widest text-on-surface-variant mb-2 block">Group</label>
                         <select
+                          id="expense-group"
                           value={selectedGroupId}
                           onChange={(event) => {
                             setSelectedGroupId(event.target.value)
                             setSelectedPeople([])
                           }}
+                          aria-label="Expense group"
                           className="w-full px-4 py-3 glass-input rounded-xl outline-none text-on-surface text-sm"
                         >
                           {groups.map((group) => (
@@ -429,16 +468,19 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                     className="space-y-6"
                   >
                     <div>
-                      <h3 className="text-2xl font-bold tracking-tight">What's it for?</h3>
+                      <h3 className="text-xl sm:text-2xl font-bold tracking-tight">What's it for?</h3>
                       <p className="text-sm text-on-surface-variant mt-1">Select a category for better tracking</p>
                     </div>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-outline" />
+                      <label htmlFor="category-search" className="sr-only">Search categories</label>
                       <input
+                        id="category-search"
                         type="text"
                         value={categorySearch}
                         onChange={(event) => setCategorySearch(event.target.value)}
                         placeholder="Search categories..."
+                        aria-label="Search categories"
                         className="w-full pl-10 pr-4 py-3 glass-input rounded-xl outline-none text-sm"
                       />
                     </div>
@@ -449,6 +491,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         <button
                           key={cat.id}
                           onClick={() => setSelectedCategory(cat.id)}
+                          aria-pressed={selectedCategory === cat.id}
                           className={`relative min-h-[88px] flex flex-col items-center justify-center gap-2 p-3 rounded-2xl text-center transition-all duration-300 ${
                             selectedCategory === cat.id
                               ? 'glass-strong ring-2 ring-primary-container shadow-lg'
@@ -487,7 +530,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                     className="space-y-6"
                   >
                     <div>
-                      <h3 className="text-2xl font-bold tracking-tight">Split between</h3>
+                      <h3 className="text-xl sm:text-2xl font-bold tracking-tight">Split between</h3>
                       <p className="text-sm text-on-surface-variant mt-1">Choose exactly who this expense is for</p>
                     </div>
                     <div className="flex items-center justify-between gap-3">
@@ -509,7 +552,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                         return (
                         <label
                           key={user.id}
-                          className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 cursor-pointer ${
+                          className={`w-full flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 cursor-pointer focus-within:ring-2 focus-within:ring-primary-container ${
                             checked
                               ? 'glass-strong ring-2 ring-primary-container'
                               : 'glass-subtle hover:bg-white/40'
@@ -520,6 +563,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                             checked={checked}
                             onChange={() => togglePerson(user.id)}
                             className="sr-only"
+                            aria-label={`Include ${user.name} in split`}
                           />
                           <div
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
@@ -573,32 +617,32 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
                     className="space-y-6"
                   >
                     <div>
-                      <h3 className="text-2xl font-bold tracking-tight">Split Summary</h3>
+                      <h3 className="text-xl sm:text-2xl font-bold tracking-tight">Split Summary</h3>
                       <p className="text-sm text-on-surface-variant mt-1">Review the details before splitting</p>
                     </div>
                     <div className="glass-subtle rounded-2xl p-5 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold text-lg">{title || 'Untitled expense'}</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-lg break-words">{title || 'Untitled expense'}</p>
                           <p className="text-xs text-on-surface-variant">
                             {selectedCategoryData?.name || 'Uncategorized'} • Today
                           </p>
                         </div>
-                        <p className="text-2xl font-bold text-gradient">{formatCurrencyAmount(validAmount ? amountValue : 0, currency)}</p>
+                        <p className="text-2xl font-bold text-gradient break-words">{formatCurrencyAmount(validAmount ? amountValue : 0, currency)}</p>
                       </div>
                       <div className="h-px bg-on-surface/5" />
                       <div className="space-y-3">
                         <p className="text-xs font-medium uppercase tracking-widest text-on-surface-variant">Split Between</p>
                         <div className="space-y-2">
                           {selectedPeopleData.map((user) => (
-                              <div key={user.id} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
+                              <div key={user.id} className="flex items-center justify-between gap-3 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0">
                                   <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: user.color ?? colorFor(user.id) }}>
                                     {user.initials ?? initialsFor(user.name)}
                                   </div>
-                                  <span className="text-sm font-medium">{user.id === activePayerId ? `${user.name} (payer)` : user.name}</span>
+                                  <span className="text-sm font-medium truncate">{user.id === activePayerId ? `${user.name} (payer)` : user.name}</span>
                                 </div>
-                                <span className="text-sm font-bold">{formatCurrencyAmount(splitAmount, currency)}</span>
+                                <span className="text-sm font-bold shrink-0">{formatCurrencyAmount(splitAmount, currency)}</span>
                               </div>
                           ))}
                         </div>
@@ -610,7 +654,7 @@ const AddExpenseModal: React.FC<AddExpenseModalProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between p-6 pt-0">
+            <div className="flex items-center justify-between gap-3 p-5 sm:p-6 pt-0 shrink-0">
               <button
                 onClick={stepIndex === 0 ? resetAndClose : prevStep}
                 className="btn-ghost text-sm"

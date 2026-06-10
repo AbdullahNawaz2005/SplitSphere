@@ -64,10 +64,10 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-5 md:px-10">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="relative z-10 pt-24 pb-28 md:pb-10 px-4 sm:px-5 md:px-10 overflow-x-hidden">
+      <div className="max-w-4xl mx-auto space-y-6 min-w-0">
         <GlassCard hover={false} delay={0.1}>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4 sm:gap-5 min-w-0">
             <Avatar initials={initials} color={color} size="xl" ring />
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold tracking-tight truncate">{user?.name ?? 'SplitSphere User'}</h1>
@@ -88,7 +88,7 @@ const ProfilePage: React.FC = () => {
                 <User className="w-4 h-4" />
                 <p className="text-[10px] uppercase tracking-widest">Name</p>
               </div>
-              <p className="text-sm font-semibold">{user?.name ?? 'Not available'}</p>
+              <p className="text-sm font-semibold break-words">{user?.name ?? 'Not available'}</p>
             </div>
             <div className="glass-subtle rounded-2xl p-4">
               <div className="flex items-center gap-2 text-on-surface-variant mb-1">
@@ -107,7 +107,7 @@ const ProfilePage: React.FC = () => {
           </div>
         </GlassCard>
 
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-4 min-w-0">
           <GlassCard hover={false} delay={0.2}>
             <p className="text-[10px] uppercase tracking-widest text-on-surface-variant">Groups</p>
             <p className="text-2xl font-bold mt-1">{loadingStats ? '...' : groupCount}</p>
@@ -117,7 +117,7 @@ const ProfilePage: React.FC = () => {
             {loadingStats ? (
               <p className="text-2xl font-bold mt-1">...</p>
             ) : expenseCount > 0 ? (
-              <p className="text-2xl font-bold mt-1 text-gradient">{money(totalShared)}</p>
+              <p className="text-2xl font-bold mt-1 text-gradient break-words">{money(totalShared)}</p>
             ) : (
               <p className="text-sm font-semibold mt-2">No expenses yet. Add your first expense to see insights.</p>
             )}
@@ -131,9 +131,9 @@ const ProfilePage: React.FC = () => {
         <div>
           <h3 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3 ml-1">Preferences</h3>
           <GlassCard hover={false} delay={0.3} className="!p-0 overflow-hidden">
-            <div className="w-full flex items-center gap-4 px-6 py-4 border-b border-on-surface/5">
+            <div className="w-full flex items-center gap-4 px-4 sm:px-6 py-4 border-b border-on-surface/5 min-w-0">
               <Moon className="w-5 h-5 text-on-surface-variant" />
-              <div className="flex-1 text-left">
+              <div className="flex-1 text-left min-w-0">
                 <p className="text-sm font-medium">Dark Mode</p>
                 <p className="text-xs text-on-surface-variant">Applies globally and persists on this device</p>
               </div>
@@ -142,6 +142,7 @@ const ProfilePage: React.FC = () => {
                 onClick={() => setDarkMode(!darkMode)}
                 className={`w-10 h-6 rounded-full transition-colors ${darkMode ? 'bg-primary-container' : 'bg-outline-variant'} flex items-center px-0.5`}
                 aria-label="Toggle dark mode"
+                aria-pressed={darkMode}
               >
                 <motion.div
                   className="w-5 h-5 rounded-full bg-white shadow-sm"
@@ -150,13 +151,14 @@ const ProfilePage: React.FC = () => {
                 />
               </button>
             </div>
-            <div className="w-full flex items-center gap-4 px-6 py-4">
+            <div className="w-full flex flex-col min-[380px]:flex-row min-[380px]:items-center gap-4 px-4 sm:px-6 py-4">
               <Globe className="w-5 h-5 text-on-surface-variant" />
-              <div className="flex-1 text-left">
+              <div className="flex-1 text-left min-w-0">
                 <p className="text-sm font-medium">Currency</p>
                 <p className="text-xs text-on-surface-variant">{currencyOptions[currency].label}</p>
               </div>
-              <select value={currency} onChange={changeCurrency} className="px-3 py-2 glass-input rounded-xl text-sm outline-none">
+              <label htmlFor="display-currency" className="sr-only">Display currency</label>
+              <select id="display-currency" value={currency} onChange={changeCurrency} className="w-full min-[380px]:w-auto px-3 py-2 glass-input rounded-xl text-sm outline-none">
                 {(Object.keys(currencyOptions) as CurrencyCode[]).map((option) => (
                   <option key={option} value={option}>{currencyOptions[option].label}</option>
                 ))}

@@ -32,11 +32,13 @@ Security decision: settlement creation means "I paid/settled with someone", so o
 
 ### 3. Settlement completion authorization flaw
 
-- Settlement completion now allows the receiver or the group owner.
-- A payer who is not also the group owner can no longer mark their own settlement completed.
+- Settlement completion now requires the settlement receiver.
+- Settlement rejection now requires the settlement receiver.
+- Group owners can no longer complete or reject another member's settlement through the normal confirmation endpoints.
+- Payers cannot mark their own settlement completed unless they are also the receiver, which is already blocked because payer and receiver must be different users.
 - Cancelled settlements still cannot be completed.
 
-Security decision: receiver confirmation is the safer default because the receiver is the party who can confirm they were paid. Group owner override is retained for group administration.
+Security decision: receiver confirmation is the normal path because the receiver is the party who can confirm they were paid. Group owner override was removed from the standard confirmation/rejection endpoints; any future admin/dispute flow should be explicit and separately audited.
 
 ### 4. Rate limiter IP spoofing
 
@@ -93,9 +95,12 @@ Production behavior: Swagger/API docs are disabled by default and are not public
   - Missing settlement payer defaults to the authenticated actor.
   - Receiver must be a group member.
 - Settlement completion:
-  - Payer cannot complete unless group owner.
+  - Payer cannot complete.
+  - Payer cannot reject.
   - Receiver can complete.
-  - Group owner can complete.
+  - Receiver can reject.
+  - Group owner cannot complete another member's settlement.
+  - Group owner cannot reject another member's settlement.
 - Rate limiter:
   - Spoofed `X-Forwarded-For` values do not bypass the login rate limit.
 
@@ -135,7 +140,7 @@ Settlement confirmation:
 - Creating a settlement request is still restricted to the authenticated payer.
 - Settlement completion now means receiver confirmation. The payer cannot complete their own payment.
 - Receivers can reject pending settlement requests through `POST /api/settlements/{settlementId}/reject`.
-- Group owners may resolve settlement state through the same confirm/reject service authorization path.
+- Group owners may not resolve another member's settlement through the normal confirm/reject service authorization path.
 - Pending and rejected settlements do not affect balances because balance calculation includes only `COMPLETED`.
 
 Flexible expense splits:
@@ -147,5 +152,34 @@ Flexible expense splits:
 
 Verification:
 
-- `mvn clean test`: PASS, 27 tests run.
+- `mvn clean test`: PASS, 28 tests run.
 - `npm run build`: PASS.
+
+## 2026-06-02 Final Blocker Fix
+
+The final production-readiness pass removed the remaining group-owner override abuse path:
+
+- `SettlementService.completeSettlement(...)` calls receiver-only authorization.
+- `SettlementService.rejectSettlement(...)` calls receiver-only authorization.
+- `SettlementServiceSecurityTest` now asserts group owners cannot complete or reject settlements where they are not the receiver.
+- Frontend settlement actions now only show Confirm Received and Not Received to the receiver.
+
+Verification:
+
+- `mvn clean test`: PASS, 28 tests run, 0 failures.
+- `npm run build`: PASS.
+
+## 2026-06-10 Settlement Authorization Recheck
+
+Settlement authorization was rechecked as part of the final blocker follow-up:
+
+- `SettlementService.completeSettlement(...)` still requires the settlement receiver.
+- `SettlementService.rejectSettlement(...)` still requires the settlement receiver.
+- The frontend still exposes Confirm Received and Not Received only to the receiver of a persisted pending settlement.
+- No normal-path group-owner completion/rejection override remains. Any future owner/admin dispute handling should be implemented as a separate audited workflow.
+
+Verification:
+
+- `mvn clean test`: PASS, 28 tests run, 0 failures.
+- `npm run build`: PASS, with the existing frontend bundle-size warning only.
+- Local headless Chrome/CDP smoke test covered Dashboard, Groups, Activity, Insights, Settlements, Profile, and Add Expense modal at 360px, 390px, and 430px with no horizontal overflow, unlabeled icon-only buttons, unlabeled dialogs, or runtime/console errors.

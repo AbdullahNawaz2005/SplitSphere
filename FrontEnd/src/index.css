@@ -381,9 +381,12 @@ html.dark .chip-orange {
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
   outline: 2px solid var(--color-primary-container);
   outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.16);
 }
 
 /* ── Chip/Tag styles ── */

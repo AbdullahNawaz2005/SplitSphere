@@ -669,7 +669,7 @@ Security fixes:
 - Expense update now prevents non-owner payer reassignment to another user.
 - Settlement creation now requires the authenticated actor to be the settlement payer. Missing `payerId` defaults to the actor.
 - Settlement receiver must still be an active group member, and payer/receiver equality is rejected.
-- Settlement completion now allows only the receiver or group owner. Payer alone cannot mark their own settlement completed.
+- Settlement completion now requires receiver confirmation. Group owner override was later removed from the normal confirmation path in the 2026-06-02 final blocker fix.
 - Rate limiting no longer trusts `X-Forwarded-For`; public limits use `request.getRemoteAddr()` and authenticated limits use user id.
 - Duplicate route families were kept for frontend compatibility, but both expense and settlement route variants use the same secured service methods.
 - Swagger/OpenAPI is disabled by default, enabled by default only for `local`/`dev`, and unauthenticated Swagger access is only permitted in `local`/`dev` profiles.
@@ -709,7 +709,7 @@ Backend changes:
 
 - Settlement creation now stores `PENDING_CONFIRMATION` instead of immediately completing payment.
 - Balance calculations continue to apply only `COMPLETED` settlements, so pending/rejected payments do not alter balances.
-- `PATCH /api/settlements/{settlementId}/complete` is receiver/group-owner confirmation, not payer self-completion.
+- `PATCH /api/settlements/{settlementId}/complete` is receiver confirmation, not payer self-completion.
 - `POST /api/settlements/{settlementId}/reject` marks a pending settlement `REJECTED`.
 - Activity log records `SETTLEMENT_CREATED`, `SETTLEMENT_CONFIRMED`, and `SETTLEMENT_REJECTED`.
 - Settlement status database constraints now allow `PENDING_CONFIRMATION` and `REJECTED` via `V11__settlement_confirmation_statuses.sql`.
@@ -718,7 +718,7 @@ Backend changes:
 Authorization and validation:
 
 - Payer can create settlements only for themselves.
-- Receiver or group owner can confirm/reject settlement requests.
+- Receiver can confirm/reject settlement requests. Group owners cannot resolve another member's settlement through the normal confirmation/rejection endpoints.
 - Payer alone cannot complete or reject their own payment.
 - Expense split participants must be active group members.
 - Empty split lists, duplicate user IDs, and invalid custom totals are rejected.
@@ -730,3 +730,28 @@ mvn clean test
 ```
 
 Result: PASS. Tests run: 27, failures: 0, errors: 0, skipped: 0.
+
+## 17. Final Settlement Authorization Blocker Fix - 2026-06-02
+
+Backend changes:
+
+- Removed group-owner override from standard settlement completion.
+- Removed group-owner override from standard settlement rejection.
+- `SettlementService.completeSettlement(...)` and `SettlementService.rejectSettlement(...)` now require the authenticated actor to be the receiver.
+
+Tests updated:
+
+- Payer cannot complete.
+- Payer cannot reject.
+- Receiver can complete.
+- Receiver can reject.
+- Group owner cannot complete another member's settlement.
+- Group owner cannot reject another member's settlement.
+
+Verification:
+
+```powershell
+mvn clean test
+```
+
+Result: PASS. Tests run: 28, failures: 0, errors: 0, skipped: 0.
