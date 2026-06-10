@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Zap, Users, ScanLine, Shield, TrendingUp, ArrowRight, ChevronRight, Star } from 'lucide-react'
 import AnimatedBackground from '../components/AnimatedBackground'
+import { copyrightText } from '../utils/appMeta'
 
 const features = [
   {
@@ -257,7 +258,7 @@ const LandingPage: React.FC = () => {
       {/* Footer */}
       <footer className="relative z-10 py-8 px-5 md:px-10 border-t border-white/10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-on-surface-variant">
-          <p>© 2024 SplitSphere. All rights reserved.</p>
+          <p>{copyrightText}</p>
         </div>
       </footer>
     </div>
